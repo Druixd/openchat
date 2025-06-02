@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nitish's Open Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a1a">
+</head>
+
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">N</div>
+      <span class="title">Open Chat</span>
+      <span class="beta-badge desktop-only">Beta</span>
+    </div>
+
+    <div class="header-center">
+      <!-- Custom Searchable Model Select -->
+      <div class="custom-select-wrapper" id="customModelSelectWrapper">
+        <div class="custom-select-display" id="customModelSelectDisplay" tabindex="0">
+          <span id="customModelSelectDisplayText">Select a model...</span>
+          <span class="custom-select-arrow">▼</span>
+        </div>
+        <div class="custom-select-dropdown" id="customModelSelectDropdown">
+          <input type="text" id="customModelSearchInput" class="custom-model-search-input"
+            placeholder="Search models...">
+          <ul id="customModelList" class="custom-model-list">
+            <!-- Model options will be populated by JS -->
+          </ul>
+        </div>
+      </div>
+      <!-- Hidden native select to store the actual value -->
+      <select id="modelSelect" class="native-select-hidden"></select>
+    </div>
+
+    <div class="header-right">
+      <!-- Refresh and Free Toggle are now grouped here -->
+      <button class="refresh-btn header-icon-btn" id="refreshBtn" title="Refresh Models">
+        <span class="btn-text desktop-only">Refresh</span>
+        <span class="btn-icon mobile-only">🔄</span>
+      </button>
+      <div class="toggle-container header-toggle-container" title="Toggle Free Models Only">
+        <span class="free-only-label desktop-only">Free</span>
+        <div class="toggle active" id="freeToggle">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+      <button class="config-btn header-icon-btn" id="configBtn" title="Configuration">
+        <span class="btn-text desktop-only">Config</span>
+        <span class="btn-icon mobile-only">⚙️</span>
+      </button>
+      <button class="clear-btn header-icon-btn" id="clearBtn" title="Clear Chat">
+        <span class="btn-text desktop-only">Clear</span>
+        <span class="btn-icon mobile-only">🗑️</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="chat-container">
+      <div class="messages" id="messages"></div>
+      <div class="status" id="status">
+        <div class="status-loading" id="statusLoading"></div>
+        <span id="statusText">Ready</span>
+      </div>
+      <div class="input-container">
+        <textarea class="message-input" id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+        <button class="send-btn" id="sendBtn">
+          <span id="sendBtnText">Send</span>
+          <div class="send-btn-loading" id="sendBtnLoading"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="configModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Configuration</h3>
+        <button class="close-btn" id="closeConfigBtn">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="apiKeyInput">OpenRouter API Key</label>
+        <input type="password" class="form-input" id="apiKeyInput" placeholder="Enter your API key">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="userSystemPromptInput">Custom System Prompt (Optional)</label>
+        <textarea class="form-textarea" id="userSystemPromptInput"
+          placeholder="e.g., Act as a pirate. Or use @override to replace default."></textarea>
+      </div>
+      <div class="form-group toggle-form-group">
+        <label class="form-label" for="autoScrollToggleInput">Auto-scroll after response</label>
+        <div class="toggle active" id="autoScrollToggleInput">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+      <button class="save-btn" id="saveConfigBtn">Save</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed: ', error);
+          });
+      });
+    }
+  </script>
+</body>
+
+</html>
