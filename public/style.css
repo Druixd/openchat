@@ -19,10 +19,10 @@
   --app-text-on-accent: #ffffff;
   --app-border-color: #333333;
   --app-border-color-light: #444444;
-  --app-accent-color: #8b5cf6;
-  --app-accent-color-darker: #7c3aed;
-  --app-logo-accent1: #8b5cf6;
-  --app-logo-accent2: #ec4899;
+  --app-accent-color: #00b0e7;
+  --app-accent-color-darker: #005bff;
+  --app-logo-accent1: #5c71f6;
+  --app-logo-accent2: #48ec58;
   --app-radius-s: 4px;
   --app-radius-m: 6px;
   --app-radius-l: 16px; /* Chat bubbles */
@@ -68,20 +68,20 @@ body {
   flex-shrink: 0;
 }
 .logo {
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(
-    45deg,
-    var(--app-logo-accent1),
-    var(--app-logo-accent2)
-  );
-  border-radius: var(--app-radius-s);
+  width: 28px; /* Adjust size as needed */
+  height: 28px; /* Adjust size as needed */
+  border-radius: var(--app-radius-m); /* Or var(--app-radius-s) if you prefer smaller radius */
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--app-text-on-accent);
-  font-weight: bold;
-  font-size: 0.7em;
+  overflow: hidden; /* Ensures image corners are clipped if image isn't perfectly square or radius is applied */
+  background-color: var(--app-bg-tertiary); /* Fallback background or if icon has transparency */
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Or 'contain' if you want to ensure the whole icon is visible without cropping */
 }
 .title {
   font-size: 0.9em;
