@@ -4,146 +4,279 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nitish's Open Chat</title>
+  <title>Open Chat</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a1a1a">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png.png">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/ohat_icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">
-        <img src="icons/icon-192x192.png.png" alt="App Logo">
-    </div>
-      <span class="title">Open Chat</span>
-      <span class="beta-badge desktop-only">Beta</span>
-    </div>
+  <div class="app-container">
+    <!-- Minimal Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <mask id="mask0_3002_2715" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="200"
+              height="200">
+              <g clip-path="url(#clip0_3002_2715)">
+                <path
+                  d="M117 0L83 0L95.4684 89.0598L41.3101 17.2685L17.2684 41.3101L89.0595 95.4683L0 83L0 117L89.0597 104.532L17.2686 158.69L41.3102 182.732L95.4683 110.94L83 200L117 200L104.532 110.94L158.69 182.732L182.731 158.69L110.94 104.532L200 117L200 83L110.94 95.4683L182.732 41.3101L158.69 17.2685L104.532 89.0597L117 0Z"
+                  fill="white" />
+              </g>
+            </mask>
+            <g mask="url(#mask0_3002_2715)">
+              <g clip-path="url(#clip1_3002_2715)">
+                <path d="M200 0H0V200H200V0Z" fill="black" />
+                <path d="M200 0H0V200H200V0Z" fill="black" />
+                <g filter="url(#filter0_f_3002_2715)">
+                  <path d="M118 10H15V160H118V10Z" fill="black" />
+                  <path d="M232.875 56H81V179.5H232.875V56Z" fill="black" />
+                  <path d="M110 77H0V200H110V77Z" fill="black" />
+                </g>
+              </g>
+            </g>
+            <defs>
+              <filter id="filter0_f_3002_2715" x="-62.5" y="-52.5" width="357.875" height="315"
+                filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                <feGaussianBlur stdDeviation="31.25" result="effect1_foregroundBlur_3002_2715" />
+              </filter>
+              <clipPath id="clip0_3002_2715">
+                <rect width="200" height="200" fill="white" />
+              </clipPath>
+              <clipPath id="clip1_3002_2715">
+                <rect width="200" height="200" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
 
-    <div class="header-center">
-      <div class="custom-select-wrapper" id="customModelSelectWrapper">
-        <div class="custom-select-display" id="customModelSelectDisplay" tabindex="0">
-          <span id="customModelSelectDisplayText">Select a model...</span>
-          <span class="custom-select-arrow">▼</span>
-        </div>
-        <div class="custom-select-dropdown" id="customModelSelectDropdown">
-          <input type="text" id="customModelSearchInput" class="custom-model-search-input"
-            placeholder="Search models...">
-          <ul id="customModelList" class="custom-model-list">
-            </ul>
+          <span class="title">OPEN CHAT</span>
         </div>
       </div>
-      <select id="modelSelect" class="native-select-hidden"></select>
-    </div>
 
-    <div class="header-right">
-      <button class="refresh-btn header-icon-btn" id="refreshBtn" title="Refresh Models">
-        <span class="btn-text desktop-only">Refresh</span>
-        <span class="btn-icon mobile-only">🔄</span>
-      </button>
-      <div class="toggle-container header-toggle-container" title="Toggle Free Models Only">
-        <span class="free-only-label desktop-only">Free</span>
-        <div class="toggle active" id="freeToggle">
-          <div class="toggle-slider"></div>
+      <div class="header-center">
+        <div class="model-select-wrapper" id="customModelSelectWrapper">
+          <button class="model-select-btn" id="customModelSelectDisplay">
+            <span id="customModelSelectDisplayText">Set API Key</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="dropdown-arrow">
+              <path d="M7 10l5 5 5-5z" />
+            </svg>
+          </button>
+          <div class="model-dropdown" id="customModelSelectDropdown">
+            <div class="search-controls">
+              <input type="text" id="customModelSearchInput" class="model-search" placeholder="Search models...">
+              <div class="search-actions">
+                <button class="header-btn refresh-btn" id="refreshBtn" title="Refresh Models">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                  </svg>
+                </button>
+                <div class="toggle-wrapper">
+                  <button class="toggle-btn active" id="freeToggle" title="Free Models Only">
+                    <div class="toggle-slider"></div>
+                  </button>
+                  <span class="toggle-label">FREE</span>
+                </div>
+              </div>
+            </div>
+            <ul id="customModelList" class="model-list"></ul>
+          </div>
+        </div>
+        <select id="modelSelect" class="hidden"></select>
+      </div>
+
+      <div class="header-right">
+        <div class="header-actions desktop-actions">
+          <button class="header-btn" id="configBtn" title="Configuration">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+            </svg>
+            <span class="btn-label">CONFIG</span>
+          </button>
+
+          <button class="header-btn danger" id="clearBtn" title="Clear Chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </svg>
+            <span class="btn-label">CLEAR</span>
+          </button>
+        </div>
+
+        <div class="mobile-actions">
+          <button class="header-btn mobile-model-btn" id="mobileModelBtn" title="Select Model">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6Z" />
+            </svg>
+          </button>
+
+          <button class="header-btn" id="mobileConfigBtn" title="Configuration">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+            </svg>
+          </button>
+
+          <button class="header-btn danger" id="mobileClearBtn" title="Clear Chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </svg>
+          </button>
         </div>
       </div>
-      <button class="config-btn header-icon-btn" id="configBtn" title="Configuration">
-        <span class="btn-text desktop-only">Config</span>
-        <span class="btn-icon mobile-only">⚙️</span>
-      </button>
-      <button class="clear-btn header-icon-btn" id="clearBtn" title="Clear Chat">
-        <span class="btn-text desktop-only">Clear</span>
-        <span class="btn-icon mobile-only">🗑️</span>
-      </button>
+    </header>
+
+    <!-- Mobile Model Select Section -->
+    <div class="mobile-model-section hidden" id="mobileModelSection">
+      <div class="mobile-search-controls">
+        <input type="text" id="mobileModelSearchInput" class="mobile-model-search" placeholder="Search models...">
+        <div class="mobile-search-actions">
+          <button class="header-btn refresh-btn" id="mobileRefreshBtn" title="Refresh Models">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+            </svg>
+          </button>
+          <div class="toggle-wrapper">
+            <button class="toggle-btn active" id="mobileFreeToggle" title="Free Models Only">
+              <div class="toggle-slider"></div>
+            </button>
+            <span class="toggle-label">FREE</span>
+          </div>
+        </div>
+      </div>
+      <ul id="mobileModelList" class="mobile-model-list"></ul>
     </div>
+
+    <!-- Main Chat Area -->
+    <main class="main-content">
+      <div class="chat-container">
+        <div class="messages-container" id="messages"></div>
+
+        <div class="status-bar" id="status">
+          <div class="status-left">
+            <div class="loading-spinner hidden" id="statusLoading"></div>
+            <span id="statusText" class="status-text">Ready</span>
+          </div>
+          <span id="rateLimitStatus" class="rate-limit">0/10 per minute</span>
+        </div>
+
+        <div class="input-area">
+          <div class="input-wrapper">
+            <textarea class="message-input" id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+            <button class="send-btn" id="sendBtn">
+              <span id="sendBtnText">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </span>
+              <div class="loading-spinner hidden" id="sendBtnLoading"></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <div class="main-container">
-    <div class="chat-container">
-      <div class="messages" id="messages"></div>
-      <div class="status" id="status">
-        <div class="status-left">
-          <div class="status-loading" id="statusLoading"></div>
-          <span id="statusText">Ready</span>
-        </div>
-        <span id="rateLimitStatus"></span>
-      </div>
-      <div class="input-container">
-        <textarea class="message-input" id="messageInput" placeholder="Type your message..." rows="1"></textarea>
-        <button class="send-btn" id="sendBtn">
-          <span id="sendBtnText">Send</span>
-          <div class="send-btn-loading" id="sendBtnLoading"></div>
+  <!-- Configuration Modal -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Configuration</h2>
+        <button class="close-btn" id="closeConfigBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
         </button>
       </div>
-    </div>
-  </div>
 
-  <div class="modal" id="configModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Configuration</h3>
-        <button class="close-btn" id="closeConfigBtn">&times;</button>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="apiKeyInput">OpenRouter API Key</label>
-        <input type="password" class="form-input" id="apiKeyInput" placeholder="Enter your API key">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="userSystemPromptInput">Custom System Prompt (Optional)</label>
-        <textarea class="form-textarea" id="userSystemPromptInput"
-          placeholder="e.g., Act as a pirate. Or use @override to replace default."></textarea>
-      </div>
+      <div class="modal-content">
+        <div class="form-section">
+          <label class="form-label" for="apiKeyInput">OpenRouter API Key</label>
+          <input type="password" class="form-input" id="apiKeyInput" placeholder="Enter your API key">
+        </div>
 
-      <div class="form-group">
-        <label class="form-label" for="writingStyleSelect">Writing Style</label>
-        <div class="style-manager">
-          <select id="writingStyleSelect" class="form-input"></select>
+        <div class="form-section">
+          <label class="form-label" for="userSystemPromptInput">Custom System Prompt</label>
+          <textarea class="form-textarea" id="userSystemPromptInput"
+            placeholder="Add custom instructions or use @override to replace default"></textarea>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label" for="writingStyleSelect">Writing Style</label>
+          <select id="writingStyleSelect" class="form-select"></select>
           <textarea id="writingStyleContent" class="form-textarea"
-            placeholder="Select a style to see its content, or write a new one."></textarea>
+            placeholder="Style content will appear here"></textarea>
+
           <div class="style-actions">
-            <input type="text" id="newStyleName" class="form-input" placeholder="Enter name for new style...">
-            <button id="saveStyleBtn" class="style-btn">Save Style</button>
-            <button id="deleteStyleBtn" class="style-btn delete-btn">Delete Style</button>
+            <button id="openAnalyzeModalBtn" class="header-btn analyze-btn">CREATE NEW STYLE FROM TEXT</button>
           </div>
-          <button id="openAnalyzeModalBtn" class="style-btn analyze-btn">Analyze from Text...</button>
+        </div>
+
+        <div class="form-section form-row">
+          <label class="form-label">Auto-scroll after response</label>
+          <button class="toggle-btn active" id="autoScrollToggleInput">
+            <div class="toggle-slider"></div>
+          </button>
+        </div>
+
+        <div class="modal-footer">
+          <button class="header-btn primary large" id="saveConfigBtn">SAVE CONFIGURATION</button>
         </div>
       </div>
-      
-      <div class="form-group toggle-form-group">
-        <label class="form-label" for="autoScrollToggleInput">Auto-scroll after response</label>
-        <div class="toggle active" id="autoScrollToggleInput">
-          <div class="toggle-slider"></div>
-        </div>
-      </div>
-      <button class="save-btn" id="saveConfigBtn">Save & Close</button>
     </div>
   </div>
 
-  <div class="modal" id="analyzeStyleModal">
-    <div class="modal-content">
+  <!-- Style Analysis Modal -->
+  <div class="modal-overlay" id="analyzeStyleModal">
+    <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">Analyze Writing Style from Text</h3>
-        <button class="close-btn" id="closeAnalyzeModalBtn">&times;</button>
+        <h2 class="modal-title">Create New Style From Text</h2>
+        <button class="close-btn" id="closeAnalyzeModalBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
+        </button>
       </div>
-      <p class="modal-description">Paste a sample of your writing below (at least a few paragraphs for best results). The AI will analyze it and generate a style guide for you.</p>
-      <div class="form-group">
-        <label class="form-label" for="styleSampleText">Sample Text</label>
-        <textarea class="form-textarea" id="styleSampleText" placeholder="Paste your text here..."></textarea>
+
+      <div class="modal-content">
+        <p class="modal-description">
+          Paste a sample of your writing below. The AI will analyze it and create a custom style guide.
+        </p>
+
+        <div class="form-section">
+          <label class="form-label" for="styleSampleText">Sample Text</label>
+          <textarea class="form-textarea large" id="styleSampleText"
+            placeholder="Paste your writing sample here..."></textarea>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label" for="analyzedStyleName">Style Name</label>
+          <input type="text" class="form-input" id="analyzedStyleName" placeholder="My Writing Style">
+        </div>
+
+        <div class="analysis-status hidden" id="analysisStatus">
+          <div class="loading-spinner"></div>
+          <span id="analysisStatusText">Analyzing writing style...</span>
+        </div>
+
+        <div class="modal-footer">
+          <button class="header-btn primary large" id="analyzeAndCreateBtn">ANALYZE & CREATE STYLE</button>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="analyzedStyleName">New Style Name</label>
-        <input type="text" class="form-input" id="analyzedStyleName" placeholder="e.g., My Blog Post Style">
-      </div>
-      <div class="analysis-status" id="analysisStatus" style="display: none;">
-        <div class="status-loading" style="display: block;"></div>
-        <span id="analysisStatusText">Analyzing...</span>
-      </div>
-      <button class="save-btn" id="analyzeAndCreateBtn">Analyze and Create Style</button>
     </div>
   </div>
-
 
   <script src="script.js"></script>
   <script>
@@ -151,10 +284,10 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
           .then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            console.log('SW registered: ', registration);
           })
           .catch(error => {
-            console.log('ServiceWorker registration failed: ', error);
+            console.log('SW registration failed: ', error);
           });
       });
     }

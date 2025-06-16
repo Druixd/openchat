@@ -1,11 +1,11 @@
 {
-  "name": "OpenChat",
-  "short_name": "Ochat",
+  "name": "Open Chat",
+  "short_name": "OpenChat",
   "description": "A simple web app to chat with OpenRouter models.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#222222",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -20,12 +20,15 @@ const App = {
     writingStyles: [],
     selectedStyleName:
       localStorage.getItem("openrouter_selected_style") || "Default",
+    mobileModelSectionOpen: false,
   },
 
   Elements: {
     header: null,
     configBtn: null,
+    mobileConfigBtn: null,
     clearBtn: null,
+    mobileClearBtn: null,
     modelSelect: null,
     customModelSelectWrapper: null,
     customModelSelectDisplay: null,
@@ -34,7 +37,9 @@ const App = {
     customModelSearchInput: null,
     customModelList: null,
     refreshBtn: null,
+    mobileRefreshBtn: null,
     freeToggle: null,
+    mobileFreeToggle: null,
     messages: null,
     statusLoading: null,
     statusText: null,
@@ -51,8 +56,6 @@ const App = {
     rateLimitStatus: null,
     writingStyleSelect: null,
     writingStyleContent: null,
-    newStyleName: null,
-    saveStyleBtn: null,
     deleteStyleBtn: null,
     analyzeStyleModal: null,
     openAnalyzeModalBtn: null,
@@ -62,6 +65,10 @@ const App = {
     analysisStatus: null,
     analysisStatusText: null,
     analyzeAndCreateBtn: null,
+    mobileModelBtn: null,
+    mobileModelSection: null,
+    mobileModelSearchInput: null,
+    mobileModelList: null,
   },
 
   Constants: {
@@ -100,7 +107,9 @@ const App = {
       const E = App.Elements;
       E.header = document.querySelector(".header");
       E.configBtn = document.getElementById("configBtn");
+      E.mobileConfigBtn = document.getElementById("mobileConfigBtn");
       E.clearBtn = document.getElementById("clearBtn");
+      E.mobileClearBtn = document.getElementById("mobileClearBtn");
       E.customModelSelectWrapper = document.getElementById(
         "customModelSelectWrapper"
       );
@@ -119,7 +128,9 @@ const App = {
       E.customModelList = document.getElementById("customModelList");
       E.modelSelect = document.getElementById("modelSelect");
       E.refreshBtn = document.getElementById("refreshBtn");
+      E.mobileRefreshBtn = document.getElementById("mobileRefreshBtn");
       E.freeToggle = document.getElementById("freeToggle");
+      E.mobileFreeToggle = document.getElementById("mobileFreeToggle");
       E.messages = document.getElementById("messages");
       E.statusLoading = document.getElementById("statusLoading");
       E.statusText = document.getElementById("statusText");
@@ -140,8 +151,6 @@ const App = {
       E.rateLimitStatus = document.getElementById("rateLimitStatus");
       E.writingStyleSelect = document.getElementById("writingStyleSelect");
       E.writingStyleContent = document.getElementById("writingStyleContent");
-      E.newStyleName = document.getElementById("newStyleName");
-      E.saveStyleBtn = document.getElementById("saveStyleBtn");
       E.deleteStyleBtn = document.getElementById("deleteStyleBtn");
       E.analyzeStyleModal = document.getElementById("analyzeStyleModal");
       E.openAnalyzeModalBtn = document.getElementById("openAnalyzeModalBtn");
@@ -151,62 +160,118 @@ const App = {
       E.analysisStatus = document.getElementById("analysisStatus");
       E.analysisStatusText = document.getElementById("analysisStatusText");
       E.analyzeAndCreateBtn = document.getElementById("analyzeAndCreateBtn");
+      E.mobileModelBtn = document.getElementById("mobileModelBtn");
+      E.mobileModelSection = document.getElementById("mobileModelSection");
+      E.mobileModelSearchInput = document.getElementById(
+        "mobileModelSearchInput"
+      );
+      E.mobileModelList = document.getElementById("mobileModelList");
 
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
       App.UI.updateRateLimitStatus();
 
+      // Auto-update rate limit status every 10 seconds
+      setInterval(() => {
+        App.UI.updateRateLimitStatus();
+      }, 10000);
+
+      // Message input auto-resize
       E.messageInput.addEventListener("input", function () {
         this.style.height = "auto";
         this.style.height = Math.min(this.scrollHeight, 120) + "px";
       });
+
+      // Send message on Enter (not Shift+Enter)
       E.messageInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           App.MainLogic.sendMessage();
         }
       });
-      E.configBtn.addEventListener("click", App.Config.open);
-      E.clearBtn.addEventListener("click", App.MainLogic.clearChat);
-      E.refreshBtn.addEventListener("click", App.MainLogic.refreshModels);
-      E.freeToggle.addEventListener("click", App.MainLogic.toggleFreeOnly);
-      E.sendBtn.addEventListener("click", App.MainLogic.sendMessage);
-      E.closeConfigBtn.addEventListener("click", App.Config.close);
-      E.autoScrollToggleInput.addEventListener(
+
+      // Button event listeners
+      E.configBtn?.addEventListener("click", function (e) {
+        e.stopPropagation();
+        App.Config.open();
+      });
+      E.mobileConfigBtn?.addEventListener("click", function (e) {
+        e.stopPropagation();
+        App.Config.open();
+      });
+      E.closeConfigBtn?.addEventListener("click", function (e) {
+        e.stopPropagation();
+        App.Config.close();
+      });
+      E.clearBtn?.addEventListener("click", App.MainLogic.clearChat);
+      E.mobileClearBtn?.addEventListener("click", App.MainLogic.clearChat);
+      E.refreshBtn?.addEventListener("click", App.MainLogic.refreshModels);
+      E.mobileRefreshBtn?.addEventListener(
+        "click",
+        App.MainLogic.refreshModels
+      );
+      E.freeToggle?.addEventListener("click", App.MainLogic.toggleFreeOnly);
+      E.mobileFreeToggle?.addEventListener(
+        "click",
+        App.MainLogic.toggleFreeOnly
+      );
+      E.sendBtn?.addEventListener("click", App.MainLogic.sendMessage);
+      E.autoScrollToggleInput?.addEventListener(
         "click",
         App.Config.toggleAutoScroll
       );
-      E.saveConfigBtn.addEventListener("click", App.Config.save);
-      E.customModelSelectDisplay.addEventListener(
+      E.saveConfigBtn?.addEventListener("click", App.Config.save);
+
+      // Model select functionality
+      E.customModelSelectDisplay?.addEventListener(
         "click",
         App.UI.toggleCustomModelSelect
       );
-      E.customModelSearchInput.addEventListener(
+      E.customModelSearchInput?.addEventListener(
         "input",
         App.UI.filterCustomModelOptions
       );
-      E.customModelList.addEventListener(
+      E.customModelList?.addEventListener(
         "click",
         App.UI.handleCustomModelOptionSelect
       );
-      E.writingStyleSelect.addEventListener(
+
+      // Mobile model section
+      E.mobileModelBtn?.addEventListener(
+        "click",
+        App.UI.toggleMobileModelSection
+      );
+      E.mobileModelSearchInput?.addEventListener(
+        "input",
+        App.UI.filterMobileModelOptions
+      );
+      E.mobileModelList?.addEventListener(
+        "click",
+        App.UI.handleMobileModelOptionSelect
+      );
+
+      // Style management
+      E.writingStyleSelect?.addEventListener(
         "change",
         App.Styles.handleStyleSelectChange
       );
-      E.saveStyleBtn.addEventListener("click", () => App.Styles.save(false));
-      E.deleteStyleBtn.addEventListener("click", App.Styles.delete);
-      E.openAnalyzeModalBtn.addEventListener("click", () => {
+      E.deleteStyleBtn?.addEventListener("click", App.Styles.delete);
+
+      // Style analysis modal
+      E.openAnalyzeModalBtn?.addEventListener("click", () => {
         E.analyzeStyleModal.style.display = "block";
       });
-      E.closeAnalyzeModalBtn.addEventListener("click", () => {
+      E.closeAnalyzeModalBtn?.addEventListener("click", () => {
         E.analyzeStyleModal.style.display = "none";
       });
-      E.analyzeAndCreateBtn.addEventListener(
+      E.analyzeAndCreateBtn?.addEventListener(
         "click",
         App.Styles.analyzeFromText
       );
 
+      // Close dropdowns when clicking outside
       document.addEventListener("click", function (event) {
+        // Close model select dropdown
         if (
           App.State.isCustomSelectOpen &&
           E.customModelSelectWrapper &&
@@ -214,22 +279,51 @@ const App = {
         ) {
           App.UI.closeCustomModelSelect();
         }
+
+        // Close mobile model section
+        if (
+          App.State.mobileModelSectionOpen &&
+          E.mobileModelSection &&
+          E.mobileModelBtn &&
+          !E.mobileModelSection.contains(event.target) &&
+          !E.mobileModelBtn.contains(event.target)
+        ) {
+          App.UI.closeMobileModelSection();
+        }
+
+        // Close modals when clicking overlay (only if click is directly on overlay)
         if (event.target === E.analyzeStyleModal) {
           E.analyzeStyleModal.style.display = "none";
         }
+        if (event.target === E.configModal) {
+          E.configModal.style.display = "none";
+        }
       });
     },
-
+    sortModelsTrending: function (models) {
+      return models.slice().sort((a, b) => {
+        // If both have trending_rank, sort by it
+        if (a.trending_rank != null && b.trending_rank != null) {
+          return a.trending_rank - b.trending_rank;
+        }
+        // If only one has trending_rank, it comes first
+        if (a.trending_rank != null) return -1;
+        if (b.trending_rank != null) return 1;
+        // Otherwise, sort alphabetically by id
+        return a.id.localeCompare(b.id);
+      });
+    },
     updateRateLimitStatus: function () {
       const S = App.State;
       const E = App.Elements;
       const now = Date.now();
       const oneMinuteAgo = now - 60000;
-      const recentRequests = S.requestTimestamps.filter(
-        (t) => t > oneMinuteAgo
-      );
+
+      // Auto-reset timestamps older than 1 minute
+      S.requestTimestamps = S.requestTimestamps.filter((t) => t > oneMinuteAgo);
+
       if (E.rateLimitStatus) {
-        E.rateLimitStatus.textContent = `${recentRequests.length}/10 per minute`;
+        E.rateLimitStatus.textContent = `${S.requestTimestamps.length}/10 per minute`;
       }
     },
 
@@ -250,17 +344,36 @@ const App = {
       App.Elements.customModelSelectWrapper.classList.remove("open");
     },
 
+    toggleMobileModelSection: function () {
+      const S = App.State;
+      const E = App.Elements;
+      S.mobileModelSectionOpen = !S.mobileModelSectionOpen;
+      if (S.mobileModelSectionOpen) {
+        E.mobileModelSection.classList.remove("hidden");
+        E.mobileModelSearchInput.value = "";
+        App.UI.filterMobileModelOptions();
+        E.mobileModelSearchInput.focus();
+      } else {
+        E.mobileModelSection.classList.add("hidden");
+      }
+    },
+
+    closeMobileModelSection: function () {
+      App.State.mobileModelSectionOpen = false;
+      App.Elements.mobileModelSection.classList.add("hidden");
+    },
+
     filterCustomModelOptions: function () {
       const E = App.Elements;
       const searchTerm = E.customModelSearchInput.value.toLowerCase().trim();
       const listItems = E.customModelList.getElementsByTagName("li");
       let hasVisibleOptions = false;
 
-      for (let item of listItems) {
+      Array.from(listItems).forEach((item) => {
         if (item.classList.contains("no-models")) {
-          item.style.display = "list-item";
-          continue;
+          return;
         }
+
         const itemText = item.textContent.toLowerCase();
         if (itemText.includes(searchTerm)) {
           item.classList.remove("hidden-option");
@@ -268,12 +381,61 @@ const App = {
         } else {
           item.classList.add("hidden-option");
         }
+      });
+
+      // Handle no results message
+      let noModelsLi = E.customModelList.querySelector(".no-models");
+      if (!noModelsLi && !hasVisibleOptions && listItems.length > 0) {
+        noModelsLi = document.createElement("li");
+        noModelsLi.className = "no-models";
+        noModelsLi.textContent = "No models match search.";
+        E.customModelList.appendChild(noModelsLi);
+      } else if (noModelsLi) {
+        if (hasVisibleOptions) {
+          noModelsLi.remove();
+        } else {
+          noModelsLi.textContent = searchTerm
+            ? "No models match search."
+            : "No models available.";
+        }
       }
-      const noModelsLi = E.customModelList.querySelector(".no-models");
-      if (noModelsLi && listItems.length > 1) {
-        noModelsLi.style.display = hasVisibleOptions ? "none" : "list-item";
-        if (!hasVisibleOptions)
-          noModelsLi.textContent = "No models match search.";
+    },
+
+    filterMobileModelOptions: function () {
+      const E = App.Elements;
+      const searchTerm = E.mobileModelSearchInput.value.toLowerCase().trim();
+      const listItems = E.mobileModelList.getElementsByTagName("li");
+      let hasVisibleOptions = false;
+
+      Array.from(listItems).forEach((item) => {
+        if (item.classList.contains("no-models")) {
+          return;
+        }
+
+        const itemText = item.textContent.toLowerCase();
+        if (itemText.includes(searchTerm)) {
+          item.classList.remove("hidden-option");
+          hasVisibleOptions = true;
+        } else {
+          item.classList.add("hidden-option");
+        }
+      });
+
+      // Handle no results message
+      let noModelsLi = E.mobileModelList.querySelector(".no-models");
+      if (!noModelsLi && !hasVisibleOptions && listItems.length > 0) {
+        noModelsLi = document.createElement("li");
+        noModelsLi.className = "no-models";
+        noModelsLi.textContent = "No models match search.";
+        E.mobileModelList.appendChild(noModelsLi);
+      } else if (noModelsLi) {
+        if (hasVisibleOptions) {
+          noModelsLi.remove();
+        } else {
+          noModelsLi.textContent = searchTerm
+            ? "No models match search."
+            : "No models available.";
+        }
       }
     },
 
@@ -296,13 +458,60 @@ const App = {
         event.target.classList.add("selected-option");
 
         App.UI.closeCustomModelSelect();
+        App.UI.syncMobileModelSelection(selectedValue);
       }
+    },
+
+    handleMobileModelOptionSelect: function (event) {
+      const E = App.Elements;
+      if (
+        event.target.tagName === "LI" &&
+        !event.target.classList.contains("no-models")
+      ) {
+        const selectedValue = event.target.dataset.value;
+        const selectedText = event.target.textContent;
+
+        E.customModelSelectDisplayText.textContent = selectedText;
+        E.modelSelect.value = selectedValue;
+
+        const currentlySelected =
+          E.mobileModelList.querySelector(".selected-option");
+        if (currentlySelected)
+          currentlySelected.classList.remove("selected-option");
+        event.target.classList.add("selected-option");
+
+        App.UI.closeMobileModelSection();
+        App.UI.syncDesktopModelSelection(selectedValue);
+      }
+    },
+
+    syncMobileModelSelection: function (selectedValue) {
+      const E = App.Elements;
+      const mobileItems = E.mobileModelList.getElementsByTagName("li");
+      Array.from(mobileItems).forEach((item) => {
+        item.classList.remove("selected-option");
+        if (item.dataset.value === selectedValue) {
+          item.classList.add("selected-option");
+        }
+      });
+    },
+
+    syncDesktopModelSelection: function (selectedValue) {
+      const E = App.Elements;
+      const desktopItems = E.customModelList.getElementsByTagName("li");
+      Array.from(desktopItems).forEach((item) => {
+        item.classList.remove("selected-option");
+        if (item.dataset.value === selectedValue) {
+          item.classList.add("selected-option");
+        }
+      });
     },
 
     populateCustomModelSelect: function () {
       const S = App.State;
       const E = App.Elements;
       E.customModelList.innerHTML = "";
+      E.mobileModelList.innerHTML = "";
       const placeholderText = "Select a model...";
       let currentSelectedNativeValue = E.modelSelect.value;
       let currentDisplayText = placeholderText;
@@ -317,26 +526,39 @@ const App = {
       if (modelsToDisplay.length === 0) {
         E.customModelList.innerHTML =
           '<li class="no-models">No models available.</li>';
+        E.mobileModelList.innerHTML =
+          '<li class="no-models">No models available.</li>';
         E.customModelSelectDisplayText.textContent = "No models";
         App.UI.setStatus("0 models available");
         App.UI.filterCustomModelOptions();
+        App.UI.filterMobileModelOptions();
         return;
       }
 
       modelsToDisplay.forEach((model) => {
+        const displayText = `${model.id} - ${model.name || "Unknown"}`;
+
+        // Desktop dropdown
         const li = document.createElement("li");
-        li.textContent = `${model.id} - ${model.name || "Unknown"}`;
+        li.textContent = displayText;
         li.dataset.value = model.id;
         E.customModelList.appendChild(li);
 
+        // Mobile dropdown
+        const mobileLi = document.createElement("li");
+        mobileLi.textContent = displayText;
+        mobileLi.dataset.value = model.id;
+        E.mobileModelList.appendChild(mobileLi);
+
         const option = document.createElement("option");
         option.value = model.id;
-        option.textContent = li.textContent;
+        option.textContent = displayText;
         E.modelSelect.appendChild(option);
 
         if (model.id === currentSelectedNativeValue) {
-          currentDisplayText = li.textContent;
+          currentDisplayText = displayText;
           li.classList.add("selected-option");
+          mobileLi.classList.add("selected-option");
           E.modelSelect.value = currentSelectedNativeValue;
           foundSelectedInNewList = true;
         }
@@ -349,33 +571,49 @@ const App = {
       E.customModelSelectDisplayText.textContent = currentDisplayText;
 
       App.UI.filterCustomModelOptions();
+      App.UI.filterMobileModelOptions();
       App.UI.setStatus(`${modelsToDisplay.length} models available`);
     },
+
     updateAutoScrollToggleUI: function () {
       App.Elements.autoScrollToggleInput.classList.toggle(
         "active",
         App.State.autoScrollEnabled
       );
     },
+
     updateFreeOnlyToggleUI: function () {
       App.Elements.freeToggle.classList.toggle("active", App.State.freeOnly);
+      App.Elements.mobileFreeToggle.classList.toggle(
+        "active",
+        App.State.freeOnly
+      );
     },
+
     setStatus: function (message, loading = false) {
       App.Elements.statusText.textContent = message;
-      App.Elements.statusLoading.style.display = loading ? "block" : "none";
+      if (loading) {
+        App.Elements.statusLoading.classList.remove("hidden");
+      } else {
+        App.Elements.statusLoading.classList.add("hidden");
+      }
     },
+
     showLoadingMessage: function () {
       const E = App.Elements;
       App.State.loadingMessageDiv = document.createElement("div");
       App.State.loadingMessageDiv.className = "loading-message";
       App.State.loadingMessageDiv.innerHTML = `
-                <span>Generating response</span>
-                <div class="loading-dots">
-                    <div class="loading-dot"></div> <div class="loading-dot"></div> <div class="loading-dot"></div>
-                </div>`;
+        <span>Generating response</span>
+        <div class="loading-dots">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>`;
       E.messages.appendChild(App.State.loadingMessageDiv);
       E.messages.scrollTop = E.messages.scrollHeight;
     },
+
     hideLoadingMessage: function () {
       if (App.State.loadingMessageDiv) {
         App.State.loadingMessageDiv.remove();
@@ -390,8 +628,11 @@ const App = {
       const thinkingContainer = document.createElement("div");
       thinkingContainer.className = "thinking-container";
       thinkingContainer.innerHTML = `
-                <div class="thinking-header"><div class="thinking-icon"></div><span>Thinking...</span></div>
-                <div class="thinking-content"></div>`;
+        <div class="thinking-header">
+          <div class="thinking-icon"></div>
+          <span>Thinking...</span>
+        </div>
+        <div class="thinking-content"></div>`;
 
       E.messages.appendChild(thinkingContainer);
       S.currentThinkingDiv =
@@ -403,7 +644,7 @@ const App = {
     updateThinkingContent: function (newThinkingText) {
       const S = App.State;
       if (S.currentThinkingDiv) {
-        S.currentThinkingDiv.textContent = `\`\`\`\n${newThinkingText}\n\`\`\``;
+        S.currentThinkingDiv.textContent = newThinkingText;
         S.currentThinkingDiv.scrollTop = S.currentThinkingDiv.scrollHeight;
       }
     },
@@ -414,6 +655,7 @@ const App = {
       const messageDiv = document.createElement("div");
       messageDiv.className = `message ${role}`;
       messageDiv.dataset.rawContent = rawContent;
+      messageDiv.dataset.role = role;
 
       const messageTextContentDiv = document.createElement("div");
       messageTextContentDiv.className = "message-text-content";
@@ -516,6 +758,7 @@ const App = {
       App.Styles.load();
       App.Styles.populateSelect();
     },
+
     load: function () {
       const S = App.State;
       const C = App.Constants;
@@ -526,6 +769,7 @@ const App = {
       );
       S.writingStyles = [...C.DEFAULT_STYLES, ...customStyles];
     },
+
     populateSelect: function () {
       const E = App.Elements;
       const S = App.State;
@@ -539,6 +783,7 @@ const App = {
       E.writingStyleSelect.value = S.selectedStyleName;
       App.Styles.handleStyleSelectChange();
     },
+
     handleStyleSelectChange: function () {
       const S = App.State;
       const E = App.Elements;
@@ -546,61 +791,14 @@ const App = {
       const selectedStyle = S.writingStyles.find(
         (s) => s.name === selectedName
       );
+
       if (selectedStyle) {
         E.writingStyleContent.value = selectedStyle.content;
         S.selectedStyleName = selectedName;
         localStorage.setItem("openrouter_selected_style", selectedName);
       }
     },
-    save: function (isFromAnalyze = false) {
-      const E = App.Elements;
-      const S = App.State;
-      const name = isFromAnalyze
-        ? E.analyzedStyleName.value.trim()
-        : E.newStyleName.value.trim();
-      const content = E.writingStyleContent.value.trim();
 
-      if (!name) {
-        alert("Please enter a name for the style.");
-        return false;
-      }
-      if (!content && !isFromAnalyze) {
-        alert("Style content is empty. Cannot save.");
-        return false;
-      }
-      if (!content && isFromAnalyze) {
-        // This case would be after a failed analysis, so we just exit.
-        return false;
-      }
-
-      const existingIndex = S.writingStyles.findIndex((s) => s.name === name);
-      const isDefault = App.Constants.DEFAULT_STYLES.some(
-        (s) => s.name === name
-      );
-
-      if (existingIndex !== -1 && isDefault) {
-        alert("You cannot overwrite a default style.");
-        return false;
-      }
-
-      if (existingIndex !== -1) {
-        S.writingStyles[existingIndex].content = content;
-      } else {
-        S.writingStyles.push({ name, content });
-      }
-
-      App.Styles.persist();
-      App.Styles.populateSelect();
-      E.writingStyleSelect.value = name;
-      S.selectedStyleName = name;
-      localStorage.setItem("openrouter_selected_style", S.selectedStyleName);
-
-      if (!isFromAnalyze) {
-        E.newStyleName.value = "";
-        alert(`Style '${name}' saved successfully.`);
-      }
-      return true;
-    },
     delete: function () {
       const E = App.Elements;
       const S = App.State;
@@ -626,6 +824,7 @@ const App = {
         App.Styles.populateSelect();
       }
     },
+
     persist: function () {
       const customStyles = App.State.writingStyles.filter(
         (style) =>
@@ -636,6 +835,7 @@ const App = {
         JSON.stringify(customStyles)
       );
     },
+
     analyzeFromText: async function () {
       const S = App.State;
       const E = App.Elements;
@@ -656,12 +856,14 @@ const App = {
         return;
       }
       if (!sampleText || !newName) {
-        alert("Please provide both a sample text and a name for the new style.");
+        alert(
+          "Please provide both a sample text and a name for the new style."
+        );
         return;
       }
 
       S.isAnalyzingStyle = true;
-      E.analysisStatus.style.display = "flex";
+      E.analysisStatus.classList.remove("hidden");
       E.analyzeAndCreateBtn.disabled = true;
 
       const metaPrompt = `You are an expert writing style analyzer. Your task is to carefully analyze the following text provided by a user. Based on your analysis, you must generate a concise, well-structured system prompt that instructs a large language model to write in the exact same style.
@@ -686,31 +888,60 @@ ${sampleText}`;
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
+          throw new Error(
+            `HTTP ${response.status}: ${
+              errorData.error?.message || response.statusText
+            }`
+          );
         }
 
         const result = await response.json();
         const generatedContent = result.choices?.[0]?.message?.content;
 
         if (!generatedContent) {
-          throw new Error("The API returned an empty analysis. Please try again.");
+          throw new Error(
+            "The API returned an empty analysis. Please try again."
+          );
         }
 
-        E.writingStyleContent.value = generatedContent.trim();
-        const saved = App.Styles.save(true);
+        // Add the new style to the list
+        const existingIndex = S.writingStyles.findIndex(
+          (s) => s.name === newName
+        );
+        const isDefault = App.Constants.DEFAULT_STYLES.some(
+          (s) => s.name === newName
+        );
 
-        if (saved) {
-          alert(`Style '${newName}' created successfully from your text!`);
-          E.analyzeStyleModal.style.display = "none";
-          E.styleSampleText.value = "";
-          E.analyzedStyleName.value = "";
+        if (existingIndex !== -1 && isDefault) {
+          alert("You cannot overwrite a default style.");
+          return;
         }
+
+        if (existingIndex !== -1) {
+          S.writingStyles[existingIndex].content = generatedContent.trim();
+        } else {
+          S.writingStyles.push({
+            name: newName,
+            content: generatedContent.trim(),
+          });
+        }
+
+        App.Styles.persist();
+        App.Styles.populateSelect();
+        E.writingStyleSelect.value = newName;
+        S.selectedStyleName = newName;
+        localStorage.setItem("openrouter_selected_style", S.selectedStyleName);
+
+        alert(`Style '${newName}' created successfully from your text!`);
+        E.analyzeStyleModal.style.display = "none";
+        E.styleSampleText.value = "";
+        E.analyzedStyleName.value = "";
       } catch (error) {
         console.error("Error analyzing style:", error);
         alert(`Failed to analyze style: ${error.message}`);
       } finally {
         S.isAnalyzingStyle = false;
-        E.analysisStatus.style.display = "none";
+        E.analysisStatus.classList.add("hidden");
         E.analyzeAndCreateBtn.disabled = false;
       }
     },
@@ -726,9 +957,11 @@ ${sampleText}`;
       App.Styles.init();
       E.configModal.style.display = "block";
     },
+
     close: function () {
       App.Elements.configModal.style.display = "none";
     },
+
     save: function () {
       const S = App.State;
       const E = App.Elements;
@@ -742,6 +975,7 @@ ${sampleText}`;
       App.Config.close();
       if (S.apiKey) App.MainLogic.refreshModels();
     },
+
     toggleAutoScroll: function () {
       App.State.autoScrollEnabled = !App.State.autoScrollEnabled;
       App.UI.updateAutoScrollToggleUI();
@@ -758,13 +992,19 @@ ${sampleText}`;
         App.Elements.customModelSelectDisplayText.textContent = "Set API Key";
         App.Elements.customModelList.innerHTML =
           '<li class="no-models">Set API Key to load models.</li>';
+        if (App.Elements.mobileModelList) {
+          App.Elements.mobileModelList.innerHTML =
+            '<li class="no-models">Set API Key to load models.</li>';
+        }
       }
     },
+
     toggleFreeOnly: function () {
       App.State.freeOnly = !App.State.freeOnly;
       App.UI.updateFreeOnlyToggleUI();
       App.UI.populateCustomModelSelect();
     },
+
     refreshModels: async function () {
       const S = App.State;
       const E = App.Elements;
@@ -776,11 +1016,23 @@ ${sampleText}`;
         E.customModelSelectDisplayText.textContent = "Set API Key";
         E.customModelList.innerHTML =
           '<li class="no-models">Set API Key to load models.</li>';
+        if (E.mobileModelList) {
+          E.mobileModelList.innerHTML =
+            '<li class="no-models">Set API Key to load models.</li>';
+        }
         return;
       }
+
       E.refreshBtn.disabled = true;
+      if (E.mobileRefreshBtn) E.mobileRefreshBtn.disabled = true;
       UI.setStatus("Fetching models...", true);
       E.customModelSelectDisplayText.textContent = "Loading...";
+
+      // try {
+      //   const data = await App.API.fetchModels();
+      //   S.models = App.UI.sortModelsTrending(data.data || []);
+      //   UI.populateCustomModelSelect();
+      // }
       try {
         const data = await App.API.fetchModels();
         S.models = data.data || [];
@@ -792,20 +1044,22 @@ ${sampleText}`;
         E.customModelSelectDisplayText.textContent = "Error";
         E.customModelList.innerHTML =
           '<li class="no-models">Error loading models.</li>';
+        if (E.mobileModelList) {
+          E.mobileModelList.innerHTML =
+            '<li class="no-models">Error loading models.</li>';
+        }
       } finally {
         E.refreshBtn.disabled = false;
+        if (E.mobileRefreshBtn) E.mobileRefreshBtn.disabled = false;
       }
     },
+
     sendMessage: async function () {
       const S = App.State;
       const E = App.Elements;
       const UI = App.UI;
 
-      const now = Date.now();
-      const oneMinuteAgo = now - 60000;
-      S.requestTimestamps = S.requestTimestamps.filter(
-        (timestamp) => timestamp > oneMinuteAgo
-      );
+      // Update rate limit status first
       UI.updateRateLimitStatus();
 
       if (S.requestTimestamps.length >= 10) {
@@ -826,8 +1080,8 @@ ${sampleText}`;
       S.isGenerating = true;
       E.sendBtn.disabled = true;
       E.messageInput.disabled = true;
-      E.sendBtnText.style.display = "none";
-      E.sendBtnLoading.style.display = "block";
+      E.sendBtnText.classList.add("hidden");
+      E.sendBtnLoading.classList.remove("hidden");
 
       UI.addMessage(message, "user");
       E.messageInput.value = "";
@@ -881,6 +1135,7 @@ ${sampleText}`;
         });
       });
 
+      const now = Date.now();
       S.requestTimestamps.push(now);
       UI.updateRateLimitStatus();
 
@@ -930,7 +1185,7 @@ ${sampleText}`;
                     E.messages.scrollTop = E.messages.scrollHeight;
                 }
               } catch (e) {
-                /* console.warn('Stream parsing error:', e, data); */
+                // Silent fail for parsing errors
               }
             }
           }
@@ -944,24 +1199,23 @@ ${sampleText}`;
         else {
           assistantContent += `\n\n**${errorMsg}**`;
           assistantMessageDiv.dataset.rawContent = assistantContent;
-          assistantMessageDiv.querySelector(
-            ".message-text-content"
-          ).innerHTML = marked.parse(assistantContent);
+          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
+            marked.parse(assistantContent);
         }
         UI.setStatus(errorMsg);
       } finally {
         S.isGenerating = false;
         E.sendBtn.disabled = false;
         E.messageInput.disabled = false;
-        E.sendBtnText.style.display = "block";
-        E.sendBtnLoading.style.display = "none";
+        E.sendBtnText.classList.remove("hidden");
+        E.sendBtnLoading.classList.add("hidden");
         S.currentThinkingDiv = null;
-        if (S.autoScrollEnabled)
-          E.messages.scrollTop = E.messages.scrollHeight;
+        if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
         E.messageInput.focus();
         UI.updateRateLimitStatus();
       }
     },
+
     clearChat: function () {
       if (confirm("Clear all messages?")) {
         App.Elements.messages.innerHTML = "";
