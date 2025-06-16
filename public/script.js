@@ -15,6 +15,7 @@ const App = {
     DEFAULT_SYSTEM_PROMPT: "You should use simple words and no emojis.",
     OVERRIDE_COMMAND: "@override",
     isCustomSelectOpen: false,
+    requestTimestamps: [], // To track request times for rate limiting
   },
 
   Elements: {
@@ -270,10 +271,6 @@ const App = {
     },
     updateFreeOnlyToggleUI: function () {
       App.Elements.freeToggle.classList.toggle("active", App.State.freeOnly);
-    },
-    setStatus: function (message, loading = false) {
-      App.Elements.statusText.textContent = message;
-      App.Elements.statusLoading.style.display = loading ? "block" : "none";
     },
     setStatus: function (message, loading = false) {
       App.Elements.statusText.textContent = message;
@@ -545,15 +542,26 @@ const App = {
       const S = App.State;
       const E = App.Elements;
       const UI = App.UI;
-      const selectedModel = E.modelSelect.value; // Read from hidden native select
 
+      // Rate Limiting Check
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      S.requestTimestamps = S.requestTimestamps.filter(
+        (timestamp) => timestamp > oneMinuteAgo
+      );
+
+      if (S.requestTimestamps.length >= 10) {
+        alert("Rate limit exceeded (10 messages per minute). Please wait.");
+        UI.setStatus("Rate limit exceeded.");
+        return;
+      }
+
+      const selectedModel = E.modelSelect.value;
       const message = E.messageInput.value.trim();
 
       if (!message || !S.apiKey || S.isGenerating) return;
       if (!selectedModel) {
         alert("Please select a model from the dropdown.");
-        // Optionally, open the custom select if no model is chosen
-        // if (!S.isCustomSelectOpen) UI.toggleCustomModelSelect();
         return;
       }
 
@@ -590,11 +598,22 @@ const App = {
       }
       finalSystemPrompt = finalSystemPrompt.trim();
 
+      // Construct message payload with history
       const messagesPayload = [];
       if (finalSystemPrompt) {
         messagesPayload.push({ role: "system", content: finalSystemPrompt });
       }
-      messagesPayload.push({ role: "user", content: message });
+
+      const allMessageElements = E.messages.querySelectorAll(".message");
+      allMessageElements.forEach((el) => {
+        messagesPayload.push({
+          role: el.classList.contains("user") ? "user" : "assistant",
+          content: el.dataset.rawContent,
+        });
+      });
+
+      // Add current request timestamp
+      S.requestTimestamps.push(now);
 
       try {
         const response = await App.API.fetchChatCompletion({
