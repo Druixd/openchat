@@ -22,7 +22,6 @@
     </div>
 
     <div class="header-center">
-      <!-- Custom Searchable Model Select -->
       <div class="custom-select-wrapper" id="customModelSelectWrapper">
         <div class="custom-select-display" id="customModelSelectDisplay" tabindex="0">
           <span id="customModelSelectDisplayText">Select a model...</span>
@@ -32,16 +31,13 @@
           <input type="text" id="customModelSearchInput" class="custom-model-search-input"
             placeholder="Search models...">
           <ul id="customModelList" class="custom-model-list">
-            <!-- Model options will be populated by JS -->
-          </ul>
+            </ul>
         </div>
       </div>
-      <!-- Hidden native select to store the actual value -->
       <select id="modelSelect" class="native-select-hidden"></select>
     </div>
 
     <div class="header-right">
-      <!-- Refresh and Free Toggle are now grouped here -->
       <button class="refresh-btn header-icon-btn" id="refreshBtn" title="Refresh Models">
         <span class="btn-text desktop-only">Refresh</span>
         <span class="btn-icon mobile-only">🔄</span>
@@ -67,8 +63,11 @@
     <div class="chat-container">
       <div class="messages" id="messages"></div>
       <div class="status" id="status">
-        <div class="status-loading" id="statusLoading"></div>
-        <span id="statusText">Ready</span>
+        <div class="status-left">
+          <div class="status-loading" id="statusLoading"></div>
+          <span id="statusText">Ready</span>
+        </div>
+        <span id="rateLimitStatus"></span>
       </div>
       <div class="input-container">
         <textarea class="message-input" id="messageInput" placeholder="Type your message..." rows="1"></textarea>
@@ -95,15 +94,55 @@
         <textarea class="form-textarea" id="userSystemPromptInput"
           placeholder="e.g., Act as a pirate. Or use @override to replace default."></textarea>
       </div>
+
+      <div class="form-group">
+        <label class="form-label" for="writingStyleSelect">Writing Style</label>
+        <div class="style-manager">
+          <select id="writingStyleSelect" class="form-input"></select>
+          <textarea id="writingStyleContent" class="form-textarea"
+            placeholder="Select a style to see its content, or write a new one."></textarea>
+          <div class="style-actions">
+            <input type="text" id="newStyleName" class="form-input" placeholder="Enter name for new style...">
+            <button id="saveStyleBtn" class="style-btn">Save Style</button>
+            <button id="deleteStyleBtn" class="style-btn delete-btn">Delete Style</button>
+          </div>
+          <button id="openAnalyzeModalBtn" class="style-btn analyze-btn">Analyze from Text...</button>
+        </div>
+      </div>
+      
       <div class="form-group toggle-form-group">
         <label class="form-label" for="autoScrollToggleInput">Auto-scroll after response</label>
         <div class="toggle active" id="autoScrollToggleInput">
           <div class="toggle-slider"></div>
         </div>
       </div>
-      <button class="save-btn" id="saveConfigBtn">Save</button>
+      <button class="save-btn" id="saveConfigBtn">Save & Close</button>
     </div>
   </div>
+
+  <div class="modal" id="analyzeStyleModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Analyze Writing Style from Text</h3>
+        <button class="close-btn" id="closeAnalyzeModalBtn">&times;</button>
+      </div>
+      <p class="modal-description">Paste a sample of your writing below (at least a few paragraphs for best results). The AI will analyze it and generate a style guide for you.</p>
+      <div class="form-group">
+        <label class="form-label" for="styleSampleText">Sample Text</label>
+        <textarea class="form-textarea" id="styleSampleText" placeholder="Paste your text here..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="analyzedStyleName">New Style Name</label>
+        <input type="text" class="form-input" id="analyzedStyleName" placeholder="e.g., My Blog Post Style">
+      </div>
+      <div class="analysis-status" id="analysisStatus" style="display: none;">
+        <div class="status-loading" style="display: block;"></div>
+        <span id="analysisStatusText">Analyzing...</span>
+      </div>
+      <button class="save-btn" id="analyzeAndCreateBtn">Analyze and Create Style</button>
+    </div>
+  </div>
+
 
   <script src="script.js"></script>
   <script>

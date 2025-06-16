@@ -21,8 +21,8 @@
   --app-border-color-light: #444444;
   --app-accent-color: #00b0e7;
   --app-accent-color-darker: #005bff;
-  --app-logo-accent1: #5c71f6;
-  --app-logo-accent2: #48ec58;
+  --app-accent-color-secondary: #5c71f6; /* For analyze button */
+  --app-error-color: #e53e3e;
   --app-radius-s: 4px;
   --app-radius-m: 6px;
   --app-radius-l: 16px; /* Chat bubbles */
@@ -68,20 +68,20 @@ body {
   flex-shrink: 0;
 }
 .logo {
-  width: 28px; /* Adjust size as needed */
-  height: 28px; /* Adjust size as needed */
-  border-radius: var(--app-radius-m); /* Or var(--app-radius-s) if you prefer smaller radius */
+  width: 28px;
+  height: 28px;
+  border-radius: var(--app-radius-m);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* Ensures image corners are clipped if image isn't perfectly square or radius is applied */
-  background-color: var(--app-bg-tertiary); /* Fallback background or if icon has transparency */
+  overflow: hidden;
+  background-color: var(--app-bg-tertiary);
 }
 
 .logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Or 'contain' if you want to ensure the whole icon is visible without cropping */
+  object-fit: cover;
 }
 .title {
   font-size: 0.9em;
@@ -101,7 +101,7 @@ body {
   display: flex;
   justify-content: center;
   margin: 0 5px;
-  min-width: 180px; /* Adjusted min-width */
+  min-width: 180px;
 }
 
 .header-right {
@@ -176,7 +176,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   flex-grow: 1;
-  padding-right: 5px; /* Space for arrow */
+  padding-right: 5px;
 }
 .custom-select-arrow {
   font-size: 0.8em;
@@ -257,7 +257,7 @@ body {
   display: none !important;
 }
 
-/* --- Main Content, Messages, Input, Modal (largely same as previous "original" version) --- */
+/* --- Main Content, Messages, Input --- */
 .main-container {
   flex: 1;
   display: flex;
@@ -422,11 +422,11 @@ body {
   cursor: not-allowed;
 }
 .send-btn-loading {
-  display: none; /* Hidden by default, shown by JS */
+  display: none;
   width: 16px;
   height: 16px;
-  border: 2px solid transparent; /* Transparent base */
-  border-top: 2px solid white; /* Spinner color for send button */
+  border: 2px solid transparent;
+  border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -439,18 +439,28 @@ body {
   color: var(--app-text-faint);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 7px;
 }
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+#rateLimitStatus {
+  font-family: var(--app-font-mono);
+}
 .status-loading {
-  display: none; /* Hidden by default, shown by JS */
+  display: none;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--app-border-color); /* Base ring color */
-  border-top: 2px solid var(--app-accent-color); /* Spinner color for status */
+  border: 2px solid var(--app-border-color);
+  border-top: 2px solid var(--app-accent-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
+/* --- Modal Styles --- */
 .modal {
   display: none;
   position: fixed;
@@ -470,8 +480,8 @@ body {
   padding: 18px;
   border-radius: var(--app-radius-m);
   border: 1px solid var(--app-border-color);
-  min-width: 280px;
-  max-width: 90vw;
+  width: 90vw;
+  max-width: 550px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 .modal-header {
@@ -526,6 +536,9 @@ body {
   min-height: 70px;
   resize: vertical;
 }
+#styleSampleText {
+  min-height: 150px;
+}
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
@@ -541,10 +554,79 @@ body {
   font-weight: 500;
   transition: background 0.2s;
   font-size: 0.9em;
+  width: 100%;
+  margin-top: 10px;
 }
 .save-btn:hover {
   background: var(--app-accent-color-darker);
 }
+.save-btn:disabled {
+  background: var(--app-border-color);
+  cursor: not-allowed;
+}
+
+
+/* --- Style Manager Specific Styles --- */
+.style-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.style-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+#newStyleName {
+  flex-grow: 1;
+}
+.style-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--app-border-color);
+  background-color: var(--app-bg-tertiary);
+  color: var(--app-text-primary);
+  border-radius: var(--app-radius-m);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.85em;
+}
+.style-btn:hover {
+  background-color: var(--app-border-color-light);
+}
+.style-btn.delete-btn {
+  background-color: #4a2222;
+  border-color: var(--app-error-color);
+  color: var(--app-text-primary);
+}
+.style-btn.delete-btn:hover {
+  background-color: #632e2e;
+}
+.style-btn.analyze-btn {
+  width: 100%;
+  margin-top: 8px;
+  background-color: var(--app-accent-color-secondary);
+  border-color: transparent;
+}
+.style-btn.analyze-btn:hover {
+  opacity: 0.9;
+}
+
+/* --- Analyze Modal Specific Styles --- */
+.modal-description {
+  font-size: 0.85em;
+  color: var(--app-text-secondary);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.analysis-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.85em;
+  color: var(--app-text-secondary);
+}
+
 
 .toggle {
   position: relative;
@@ -572,7 +654,7 @@ body {
   transform: translateX(18px);
 }
 
-/* --- Basic Markdown Styling (Not SC Theme) --- */
+/* --- Markdown Styling --- */
 .message.assistant .message-text-content h1,
 .message.assistant .message-text-content h2,
 .message.assistant .message-text-content h3,
@@ -804,6 +886,7 @@ body {
   }
   .modal-content {
     padding: 15px;
+    max-width: 90vw;
   }
 }
 

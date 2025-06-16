@@ -10,19 +10,23 @@ const App = {
     freeOnly: true,
     models: [],
     isGenerating: false,
+    isAnalyzingStyle: false,
     loadingMessageDiv: null,
     currentThinkingDiv: null,
     DEFAULT_SYSTEM_PROMPT: "You should use simple words and no emojis.",
     OVERRIDE_COMMAND: "@override",
     isCustomSelectOpen: false,
-    requestTimestamps: [], // To track request times for rate limiting
+    requestTimestamps: [],
+    writingStyles: [],
+    selectedStyleName:
+      localStorage.getItem("openrouter_selected_style") || "Default",
   },
 
   Elements: {
     header: null,
     configBtn: null,
     clearBtn: null,
-    modelSelect: null, // This is now the HIDDEN native select
+    modelSelect: null,
     customModelSelectWrapper: null,
     customModelSelectDisplay: null,
     customModelSelectDisplayText: null,
@@ -44,6 +48,51 @@ const App = {
     userSystemPromptInput: null,
     autoScrollToggleInput: null,
     saveConfigBtn: null,
+    rateLimitStatus: null,
+    writingStyleSelect: null,
+    writingStyleContent: null,
+    newStyleName: null,
+    saveStyleBtn: null,
+    deleteStyleBtn: null,
+    analyzeStyleModal: null,
+    openAnalyzeModalBtn: null,
+    closeAnalyzeModalBtn: null,
+    styleSampleText: null,
+    analyzedStyleName: null,
+    analysisStatus: null,
+    analysisStatusText: null,
+    analyzeAndCreateBtn: null,
+  },
+
+  Constants: {
+    DEFAULT_STYLES: [
+      { name: "Default", content: "" },
+      {
+        name: "Professional & Formal",
+        content:
+          "Your writing style is professional and formal. Use clear, concise language, proper grammar, and a respectful tone. Avoid slang, contractions, and overly casual phrasing.",
+      },
+      {
+        name: "Casual & Conversational",
+        content:
+          "Your writing style is casual and conversational. Feel free to use contractions, everyday language, and a friendly, approachable tone. Keep it light and easy to read.",
+      },
+      {
+        name: "Humorous & Witty",
+        content:
+          "Your writing style is humorous and witty. Incorporate clever remarks, puns, and light-hearted jokes where appropriate. Your goal is to be engaging and amusing.",
+      },
+      {
+        name: "Persuasive & Inspiring",
+        content:
+          "Your writing style is persuasive and inspiring. Use powerful words, rhetorical questions, and a confident tone to motivate and convince the reader. Appeal to emotions and logic.",
+      },
+      {
+        name: "Descriptive & Creative",
+        content:
+          "Your writing style is descriptive and creative. Use vivid imagery, sensory details, and metaphors to paint a picture with your words. Be imaginative and artistic in your language.",
+      },
+    ],
   },
 
   UI: {
@@ -52,7 +101,6 @@ const App = {
       E.header = document.querySelector(".header");
       E.configBtn = document.getElementById("configBtn");
       E.clearBtn = document.getElementById("clearBtn");
-
       E.customModelSelectWrapper = document.getElementById(
         "customModelSelectWrapper"
       );
@@ -70,7 +118,6 @@ const App = {
       );
       E.customModelList = document.getElementById("customModelList");
       E.modelSelect = document.getElementById("modelSelect");
-
       E.refreshBtn = document.getElementById("refreshBtn");
       E.freeToggle = document.getElementById("freeToggle");
       E.messages = document.getElementById("messages");
@@ -90,9 +137,24 @@ const App = {
         "autoScrollToggleInput"
       );
       E.saveConfigBtn = document.getElementById("saveConfigBtn");
+      E.rateLimitStatus = document.getElementById("rateLimitStatus");
+      E.writingStyleSelect = document.getElementById("writingStyleSelect");
+      E.writingStyleContent = document.getElementById("writingStyleContent");
+      E.newStyleName = document.getElementById("newStyleName");
+      E.saveStyleBtn = document.getElementById("saveStyleBtn");
+      E.deleteStyleBtn = document.getElementById("deleteStyleBtn");
+      E.analyzeStyleModal = document.getElementById("analyzeStyleModal");
+      E.openAnalyzeModalBtn = document.getElementById("openAnalyzeModalBtn");
+      E.closeAnalyzeModalBtn = document.getElementById("closeAnalyzeModalBtn");
+      E.styleSampleText = document.getElementById("styleSampleText");
+      E.analyzedStyleName = document.getElementById("analyzedStyleName");
+      E.analysisStatus = document.getElementById("analysisStatus");
+      E.analysisStatusText = document.getElementById("analysisStatusText");
+      E.analyzeAndCreateBtn = document.getElementById("analyzeAndCreateBtn");
 
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
+      App.UI.updateRateLimitStatus();
 
       E.messageInput.addEventListener("input", function () {
         this.style.height = "auto";
@@ -104,7 +166,6 @@ const App = {
           App.MainLogic.sendMessage();
         }
       });
-
       E.configBtn.addEventListener("click", App.Config.open);
       E.clearBtn.addEventListener("click", App.MainLogic.clearChat);
       E.refreshBtn.addEventListener("click", App.MainLogic.refreshModels);
@@ -116,7 +177,6 @@ const App = {
         App.Config.toggleAutoScroll
       );
       E.saveConfigBtn.addEventListener("click", App.Config.save);
-
       E.customModelSelectDisplay.addEventListener(
         "click",
         App.UI.toggleCustomModelSelect
@@ -129,6 +189,22 @@ const App = {
         "click",
         App.UI.handleCustomModelOptionSelect
       );
+      E.writingStyleSelect.addEventListener(
+        "change",
+        App.Styles.handleStyleSelectChange
+      );
+      E.saveStyleBtn.addEventListener("click", () => App.Styles.save(false));
+      E.deleteStyleBtn.addEventListener("click", App.Styles.delete);
+      E.openAnalyzeModalBtn.addEventListener("click", () => {
+        E.analyzeStyleModal.style.display = "block";
+      });
+      E.closeAnalyzeModalBtn.addEventListener("click", () => {
+        E.analyzeStyleModal.style.display = "none";
+      });
+      E.analyzeAndCreateBtn.addEventListener(
+        "click",
+        App.Styles.analyzeFromText
+      );
 
       document.addEventListener("click", function (event) {
         if (
@@ -138,8 +214,23 @@ const App = {
         ) {
           App.UI.closeCustomModelSelect();
         }
-        if (E.configModal && event.target === E.configModal) App.Config.close();
+        if (event.target === E.analyzeStyleModal) {
+          E.analyzeStyleModal.style.display = "none";
+        }
       });
+    },
+
+    updateRateLimitStatus: function () {
+      const S = App.State;
+      const E = App.Elements;
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      const recentRequests = S.requestTimestamps.filter(
+        (t) => t > oneMinuteAgo
+      );
+      if (E.rateLimitStatus) {
+        E.rateLimitStatus.textContent = `${recentRequests.length}/10 per minute`;
+      }
     },
 
     toggleCustomModelSelect: function () {
@@ -167,8 +258,7 @@ const App = {
 
       for (let item of listItems) {
         if (item.classList.contains("no-models")) {
-          // Skip "no models" message
-          item.style.display = "list-item"; // Always show if it's the only item
+          item.style.display = "list-item";
           continue;
         }
         const itemText = item.textContent.toLowerCase();
@@ -179,10 +269,8 @@ const App = {
           item.classList.add("hidden-option");
         }
       }
-      // Show "no results" if applicable
       const noModelsLi = E.customModelList.querySelector(".no-models");
       if (noModelsLi && listItems.length > 1) {
-        // Only if there are actual models to filter
         noModelsLi.style.display = hasVisibleOptions ? "none" : "list-item";
         if (!hasVisibleOptions)
           noModelsLi.textContent = "No models match search.";
@@ -224,14 +312,14 @@ const App = {
         ? S.models.filter((model) => model.id.includes(":free"))
         : S.models;
 
-      E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`; // Clear and add placeholder to native
+      E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`;
 
       if (modelsToDisplay.length === 0) {
         E.customModelList.innerHTML =
           '<li class="no-models">No models available.</li>';
         E.customModelSelectDisplayText.textContent = "No models";
         App.UI.setStatus("0 models available");
-        App.UI.filterCustomModelOptions(); // To ensure "no models" is shown if search is active
+        App.UI.filterCustomModelOptions();
         return;
       }
 
@@ -249,13 +337,13 @@ const App = {
         if (model.id === currentSelectedNativeValue) {
           currentDisplayText = li.textContent;
           li.classList.add("selected-option");
-          E.modelSelect.value = currentSelectedNativeValue; // Ensure native is set
+          E.modelSelect.value = currentSelectedNativeValue;
           foundSelectedInNewList = true;
         }
       });
 
       if (!foundSelectedInNewList) {
-        E.modelSelect.value = ""; // Reset native if previous selection is gone
+        E.modelSelect.value = "";
         currentDisplayText = placeholderText;
       }
       E.customModelSelectDisplayText.textContent = currentDisplayText;
@@ -299,59 +387,25 @@ const App = {
       const E = App.Elements;
       const S = App.State;
 
-      // This function's job is to create the block and set S.currentThinkingDiv.
-      // The check for whether to call this is in sendMessage.
-      console.log("[UI.addThinkingBlock] Called.");
-
       const thinkingContainer = document.createElement("div");
       thinkingContainer.className = "thinking-container";
       thinkingContainer.innerHTML = `
                 <div class="thinking-header"><div class="thinking-icon"></div><span>Thinking...</span></div>
-                <div class="thinking-content"></div>`; // Content will be set by updateThinkingContent
+                <div class="thinking-content"></div>`;
 
       E.messages.appendChild(thinkingContainer);
       S.currentThinkingDiv =
         thinkingContainer.querySelector(".thinking-content");
-
-      console.log(
-        "[UI.addThinkingBlock] Thinking block added. S.currentThinkingDiv:",
-        S.currentThinkingDiv
-      );
 
       if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
     },
 
     updateThinkingContent: function (newThinkingText) {
       const S = App.State;
-      console.log(
-        "[UI.updateThinkingContent] Called with text:",
-        newThinkingText
-      );
       if (S.currentThinkingDiv) {
         S.currentThinkingDiv.textContent = `\`\`\`\n${newThinkingText}\n\`\`\``;
         S.currentThinkingDiv.scrollTop = S.currentThinkingDiv.scrollHeight;
-        console.log("[UI.updateThinkingContent] Content updated.");
-      } else {
-        console.warn(
-          "[UI.updateThinkingContent] S.currentThinkingDiv is null. Cannot update."
-        );
       }
-    },
-
-    populateModelSelect: function () {
-      const E = App.Elements;
-      const S = App.State;
-      E.modelSelect.innerHTML = '<option value="">Select a model...</option>';
-      const filteredModels = S.freeOnly
-        ? S.models.filter((model) => model.id.includes(":free"))
-        : S.models;
-      filteredModels.forEach((model) => {
-        const option = document.createElement("option");
-        option.value = model.id;
-        option.textContent = `${model.id} - ${model.name || "Unknown"}`;
-        E.modelSelect.appendChild(option);
-      });
-      App.UI.setStatus(`${filteredModels.length} models available`);
     },
 
     addMessage: function (rawContent, role) {
@@ -403,7 +457,6 @@ const App = {
       if (format === "md") {
         textToCopy = rawContent;
       } else {
-        // txt
         if (role === "assistant") {
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = marked.parse(rawContent);
@@ -429,7 +482,6 @@ const App = {
   },
 
   API: {
-    /* ... (no changes) ... */
     fetchModels: async function () {
       const S = App.State;
       if (!S.apiKey) return null;
@@ -459,14 +511,219 @@ const App = {
     },
   },
 
+  Styles: {
+    init: function () {
+      App.Styles.load();
+      App.Styles.populateSelect();
+    },
+    load: function () {
+      const S = App.State;
+      const C = App.Constants;
+      const savedStyles =
+        JSON.parse(localStorage.getItem("openrouter_writing_styles")) || [];
+      const customStyles = savedStyles.filter(
+        (saved) => !C.DEFAULT_STYLES.some((def) => def.name === saved.name)
+      );
+      S.writingStyles = [...C.DEFAULT_STYLES, ...customStyles];
+    },
+    populateSelect: function () {
+      const E = App.Elements;
+      const S = App.State;
+      E.writingStyleSelect.innerHTML = "";
+      S.writingStyles.forEach((style) => {
+        const option = document.createElement("option");
+        option.value = style.name;
+        option.textContent = style.name;
+        E.writingStyleSelect.appendChild(option);
+      });
+      E.writingStyleSelect.value = S.selectedStyleName;
+      App.Styles.handleStyleSelectChange();
+    },
+    handleStyleSelectChange: function () {
+      const S = App.State;
+      const E = App.Elements;
+      const selectedName = E.writingStyleSelect.value;
+      const selectedStyle = S.writingStyles.find(
+        (s) => s.name === selectedName
+      );
+      if (selectedStyle) {
+        E.writingStyleContent.value = selectedStyle.content;
+        S.selectedStyleName = selectedName;
+        localStorage.setItem("openrouter_selected_style", selectedName);
+      }
+    },
+    save: function (isFromAnalyze = false) {
+      const E = App.Elements;
+      const S = App.State;
+      const name = isFromAnalyze
+        ? E.analyzedStyleName.value.trim()
+        : E.newStyleName.value.trim();
+      const content = E.writingStyleContent.value.trim();
+
+      if (!name) {
+        alert("Please enter a name for the style.");
+        return false;
+      }
+      if (!content && !isFromAnalyze) {
+        alert("Style content is empty. Cannot save.");
+        return false;
+      }
+      if (!content && isFromAnalyze) {
+        // This case would be after a failed analysis, so we just exit.
+        return false;
+      }
+
+      const existingIndex = S.writingStyles.findIndex((s) => s.name === name);
+      const isDefault = App.Constants.DEFAULT_STYLES.some(
+        (s) => s.name === name
+      );
+
+      if (existingIndex !== -1 && isDefault) {
+        alert("You cannot overwrite a default style.");
+        return false;
+      }
+
+      if (existingIndex !== -1) {
+        S.writingStyles[existingIndex].content = content;
+      } else {
+        S.writingStyles.push({ name, content });
+      }
+
+      App.Styles.persist();
+      App.Styles.populateSelect();
+      E.writingStyleSelect.value = name;
+      S.selectedStyleName = name;
+      localStorage.setItem("openrouter_selected_style", S.selectedStyleName);
+
+      if (!isFromAnalyze) {
+        E.newStyleName.value = "";
+        alert(`Style '${name}' saved successfully.`);
+      }
+      return true;
+    },
+    delete: function () {
+      const E = App.Elements;
+      const S = App.State;
+      const selectedName = E.writingStyleSelect.value;
+
+      const isDefault = App.Constants.DEFAULT_STYLES.some(
+        (s) => s.name === selectedName
+      );
+      if (isDefault) {
+        alert("You cannot delete a default style.");
+        return;
+      }
+
+      if (
+        confirm(`Are you sure you want to delete the style '${selectedName}'?`)
+      ) {
+        S.writingStyles = S.writingStyles.filter(
+          (s) => s.name !== selectedName
+        );
+        App.Styles.persist();
+        S.selectedStyleName = "Default";
+        localStorage.setItem("openrouter_selected_style", "Default");
+        App.Styles.populateSelect();
+      }
+    },
+    persist: function () {
+      const customStyles = App.State.writingStyles.filter(
+        (style) =>
+          !App.Constants.DEFAULT_STYLES.some((def) => def.name === style.name)
+      );
+      localStorage.setItem(
+        "openrouter_writing_styles",
+        JSON.stringify(customStyles)
+      );
+    },
+    analyzeFromText: async function () {
+      const S = App.State;
+      const E = App.Elements;
+
+      const sampleText = E.styleSampleText.value.trim();
+      const newName = E.analyzedStyleName.value.trim();
+      const selectedModel = E.modelSelect.value;
+
+      if (S.isAnalyzingStyle) return;
+      if (!S.apiKey) {
+        alert("API Key is not set. Please set it in the configuration.");
+        return;
+      }
+      if (!selectedModel) {
+        alert(
+          "Please select a model on the main screen first. A powerful model is recommended for analysis."
+        );
+        return;
+      }
+      if (!sampleText || !newName) {
+        alert("Please provide both a sample text and a name for the new style.");
+        return;
+      }
+
+      S.isAnalyzingStyle = true;
+      E.analysisStatus.style.display = "flex";
+      E.analyzeAndCreateBtn.disabled = true;
+
+      const metaPrompt = `You are an expert writing style analyzer. Your task is to carefully analyze the following text provided by a user. Based on your analysis, you must generate a concise, well-structured system prompt that instructs a large language model to write in the exact same style.
+
+Your output should:
+- Be a set of instructions for an AI.
+- Describe the tone, voice, vocabulary, sentence structure, complexity, and any other notable characteristics (e.g., use of metaphors, humor, formal/informal language).
+- Be formatted clearly and ready to be used as a system prompt.
+
+IMPORTANT: Do not respond to or summarize the content of the text itself. Your response should ONLY be the generated system prompt that describes the style.
+
+Here is the user's text to analyze:
+---
+${sampleText}`;
+
+      try {
+        const response = await App.API.fetchChatCompletion({
+          model: selectedModel,
+          messages: [{ role: "user", content: metaPrompt }],
+          stream: false,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+        const generatedContent = result.choices?.[0]?.message?.content;
+
+        if (!generatedContent) {
+          throw new Error("The API returned an empty analysis. Please try again.");
+        }
+
+        E.writingStyleContent.value = generatedContent.trim();
+        const saved = App.Styles.save(true);
+
+        if (saved) {
+          alert(`Style '${newName}' created successfully from your text!`);
+          E.analyzeStyleModal.style.display = "none";
+          E.styleSampleText.value = "";
+          E.analyzedStyleName.value = "";
+        }
+      } catch (error) {
+        console.error("Error analyzing style:", error);
+        alert(`Failed to analyze style: ${error.message}`);
+      } finally {
+        S.isAnalyzingStyle = false;
+        E.analysisStatus.style.display = "none";
+        E.analyzeAndCreateBtn.disabled = false;
+      }
+    },
+  },
+
   Config: {
-    /* ... (no changes) ... */
     open: function () {
       const S = App.State;
       const E = App.Elements;
       E.apiKeyInput.value = S.apiKey;
       E.userSystemPromptInput.value = S.userSystemPrompt;
       App.UI.updateAutoScrollToggleUI();
+      App.Styles.init();
       E.configModal.style.display = "block";
     },
     close: function () {
@@ -494,6 +751,7 @@ const App = {
   MainLogic: {
     init: function () {
       App.UI.init();
+      App.Styles.init();
       if (App.State.apiKey) {
         App.MainLogic.refreshModels();
       } else {
@@ -543,12 +801,12 @@ const App = {
       const E = App.Elements;
       const UI = App.UI;
 
-      // Rate Limiting Check
       const now = Date.now();
       const oneMinuteAgo = now - 60000;
       S.requestTimestamps = S.requestTimestamps.filter(
         (timestamp) => timestamp > oneMinuteAgo
       );
+      UI.updateRateLimitStatus();
 
       if (S.requestTimestamps.length >= 10) {
         alert("Rate limit exceeded (10 messages per minute). Please wait.");
@@ -582,23 +840,34 @@ const App = {
       let assistantContent = "";
       S.currentThinkingDiv = null;
 
-      let finalSystemPrompt = "";
+      const selectedStyle = S.writingStyles.find(
+        (s) => s.name === S.selectedStyleName
+      );
+      const styleContent = selectedStyle ? selectedStyle.content : "";
+
+      let customPromptPart = "";
       const userPromptLower = S.userSystemPrompt.toLowerCase();
       const overrideCmdLower = S.OVERRIDE_COMMAND.toLowerCase();
 
       if (userPromptLower.startsWith(overrideCmdLower)) {
-        finalSystemPrompt = S.userSystemPrompt
+        customPromptPart = S.userSystemPrompt
           .substring(S.OVERRIDE_COMMAND.length)
           .trim();
       } else {
-        finalSystemPrompt = S.DEFAULT_SYSTEM_PROMPT;
+        customPromptPart = S.DEFAULT_SYSTEM_PROMPT;
         if (S.userSystemPrompt) {
-          finalSystemPrompt += " " + S.userSystemPrompt;
+          customPromptPart += " " + S.userSystemPrompt;
         }
+      }
+
+      let finalSystemPrompt = styleContent;
+      if (styleContent && customPromptPart) {
+        finalSystemPrompt += "\n\n---\n\n" + customPromptPart.trim();
+      } else if (customPromptPart) {
+        finalSystemPrompt = customPromptPart.trim();
       }
       finalSystemPrompt = finalSystemPrompt.trim();
 
-      // Construct message payload with history
       const messagesPayload = [];
       if (finalSystemPrompt) {
         messagesPayload.push({ role: "system", content: finalSystemPrompt });
@@ -612,8 +881,8 @@ const App = {
         });
       });
 
-      // Add current request timestamp
       S.requestTimestamps.push(now);
+      UI.updateRateLimitStatus();
 
       try {
         const response = await App.API.fetchChatCompletion({
@@ -675,8 +944,9 @@ const App = {
         else {
           assistantContent += `\n\n**${errorMsg}**`;
           assistantMessageDiv.dataset.rawContent = assistantContent;
-          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
-            marked.parse(assistantContent);
+          assistantMessageDiv.querySelector(
+            ".message-text-content"
+          ).innerHTML = marked.parse(assistantContent);
         }
         UI.setStatus(errorMsg);
       } finally {
@@ -686,8 +956,10 @@ const App = {
         E.sendBtnText.style.display = "block";
         E.sendBtnLoading.style.display = "none";
         S.currentThinkingDiv = null;
-        if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
+        if (S.autoScrollEnabled)
+          E.messages.scrollTop = E.messages.scrollHeight;
         E.messageInput.focus();
+        UI.updateRateLimitStatus();
       }
     },
     clearChat: function () {
