@@ -1,5 +1,6 @@
 const App = {
   State: {
+    darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
     apiKey: localStorage.getItem("openrouter_api_key") || "",
     userSystemPrompt:
       localStorage.getItem("openrouter_user_system_prompt") || "",
@@ -27,6 +28,7 @@ const App = {
     header: null,
     configBtn: null,
     mobileConfigBtn: null,
+    darkModeToggleInput: null,
     clearBtn: null,
     mobileClearBtn: null,
     modelSelect: null,
@@ -110,6 +112,7 @@ const App = {
       E.mobileConfigBtn = document.getElementById("mobileConfigBtn");
       E.clearBtn = document.getElementById("clearBtn");
       E.mobileClearBtn = document.getElementById("mobileClearBtn");
+      E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
       E.customModelSelectWrapper = document.getElementById(
         "customModelSelectWrapper"
       );
@@ -170,6 +173,7 @@ const App = {
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
       App.UI.updateRateLimitStatus();
+      App.DarkMode.init();
 
       // Auto-update rate limit status every 10 seconds
       setInterval(() => {
@@ -181,7 +185,7 @@ const App = {
         this.style.height = "auto";
         this.style.height = Math.min(this.scrollHeight, 120) + "px";
       });
-
+      E.darkModeToggleInput?.addEventListener("click", App.DarkMode.toggle);
       // Send message on Enter (not Shift+Enter)
       E.messageInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -946,6 +950,34 @@ ${sampleText}`;
       }
     },
   },
+  DarkMode: {
+    init: function () {
+      App.DarkMode.apply();
+      App.DarkMode.updateToggleUI();
+    },
+
+    apply: function () {
+      if (App.State.darkMode) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+      }
+    },
+
+    toggle: function () {
+      App.State.darkMode = !App.State.darkMode;
+      localStorage.setItem("openrouter_dark_mode", App.State.darkMode);
+      App.DarkMode.apply();
+      App.DarkMode.updateToggleUI();
+    },
+
+    updateToggleUI: function () {
+      App.Elements.darkModeToggleInput?.classList.toggle(
+        "active",
+        App.State.darkMode
+      );
+    },
+  },
 
   Config: {
     open: function () {
@@ -954,6 +986,7 @@ ${sampleText}`;
       E.apiKeyInput.value = S.apiKey;
       E.userSystemPromptInput.value = S.userSystemPrompt;
       App.UI.updateAutoScrollToggleUI();
+      App.DarkMode.updateToggleUI();
       App.Styles.init();
       E.configModal.style.display = "block";
     },
@@ -971,6 +1004,7 @@ ${sampleText}`;
       localStorage.setItem("openrouter_api_key", S.apiKey);
       localStorage.setItem("openrouter_user_system_prompt", S.userSystemPrompt);
       localStorage.setItem("openrouter_auto_scroll", S.autoScrollEnabled);
+      localStorage.setItem("openrouter_dark_mode", S.darkMode);
 
       App.Config.close();
       if (S.apiKey) App.MainLogic.refreshModels();
