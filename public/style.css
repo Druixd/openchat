@@ -136,6 +136,7 @@ body::before {
   gap: var(--space-md);
 }
 
+
 .header-left {
   display: flex;
   align-items: center;
@@ -640,6 +641,13 @@ body::before {
 }
 
 /* Thinking Block */
+.thinking-quote {
+  border-left: 4px solid #ccc;
+  padding-left: 10px;
+  font-style: italic;
+  margin-bottom: 10px;
+  color: #555;  /* Or whatever fits your theme */
+}
 .thinking-container {
   background: var(--color-purple);
   color: var(--color-white);
