@@ -1,13 +1,34 @@
 const App = {
   State: {
-    darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
-    apiKey: localStorage.getItem("openrouter_api_key") || "",
+    // Provider management
+    currentProvider:
+      localStorage.getItem("openrouter_current_provider") || "openrouter",
+    providers: {
+      openrouter: {
+        name: "OpenRouter",
+        apiKey: localStorage.getItem("openrouter_api_key") || "",
+        baseUrl: "https://openrouter.ai/api/v1",
+        headers: {
+          "HTTP-Referer": window.location.href,
+          "X-Title": "OpenRouter Chat Tool",
+        },
+      },
+      siliconflow: {
+        name: "SiliconFlow",
+        apiKey: localStorage.getItem("siliconflow_api_key") || "",
+        baseUrl: "https://api.ap.siliconflow.com/v1",
+        headers: {},
+      },
+    },
+
+    // Existing state properties
     userSystemPrompt:
       localStorage.getItem("openrouter_user_system_prompt") || "",
     autoScrollEnabled:
       localStorage.getItem("openrouter_auto_scroll") === null
         ? true
         : localStorage.getItem("openrouter_auto_scroll") === "true",
+    darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
     freeOnly: true,
     models: [],
     isGenerating: false,
@@ -25,10 +46,14 @@ const App = {
   },
 
   Elements: {
+    // Add provider elements
+    providerSelect: null,
+    providerApiKeyInputs: {},
+
+    // Existing elements (keeping all your existing element definitions)
     header: null,
     configBtn: null,
     mobileConfigBtn: null,
-    darkModeToggleInput: null,
     clearBtn: null,
     mobileClearBtn: null,
     modelSelect: null,
@@ -51,7 +76,7 @@ const App = {
     sendBtnLoading: null,
     configModal: null,
     closeConfigBtn: null,
-    apiKeyInput: null,
+    apiKeyInput: null, // This will be repurposed for current provider
     userSystemPromptInput: null,
     autoScrollToggleInput: null,
     saveConfigBtn: null,
@@ -71,6 +96,7 @@ const App = {
     mobileModelSection: null,
     mobileModelSearchInput: null,
     mobileModelList: null,
+    darkModeToggleInput: null,
   },
 
   Constants: {
@@ -104,6 +130,67 @@ const App = {
     ],
   },
 
+  // Add provider management
+  Provider: {
+    getCurrentProvider: function () {
+      return App.State.providers[App.State.currentProvider];
+    },
+
+    getCurrentApiKey: function () {
+      return App.Provider.getCurrentProvider().apiKey;
+    },
+
+    setCurrentProvider: function (providerId) {
+      App.State.currentProvider = providerId;
+      localStorage.setItem("openrouter_current_provider", providerId);
+      App.Provider.updateUI();
+    },
+
+    updateUI: function () {
+      const E = App.Elements;
+      const currentProvider = App.Provider.getCurrentProvider();
+
+      // Update provider select
+      if (E.providerSelect) {
+        E.providerSelect.value = App.State.currentProvider;
+      }
+
+      // Update API key input to show current provider's key
+      if (E.apiKeyInput) {
+        E.apiKeyInput.value = currentProvider.apiKey;
+        E.apiKeyInput.placeholder = `Enter your ${currentProvider.name} API key`;
+      }
+
+      // Update model display text
+      if (E.customModelSelectDisplayText) {
+        const hasApiKey = currentProvider.apiKey;
+        if (!hasApiKey) {
+          E.customModelSelectDisplayText.textContent = `Set ${currentProvider.name} API Key`;
+        }
+      }
+    },
+
+    saveApiKey: function (providerId, apiKey) {
+      App.State.providers[providerId].apiKey = apiKey;
+      localStorage.setItem(`${providerId}_api_key`, apiKey);
+    },
+
+    handleProviderChange: function () {
+      const newProvider = App.Elements.providerSelect.value;
+      App.Provider.setCurrentProvider(newProvider);
+
+      // Clear current models and refresh
+      App.State.models = [];
+      App.UI.populateCustomModelSelect();
+
+      // Refresh models for new provider
+      const provider = App.Provider.getCurrentProvider();
+      if (provider.apiKey) {
+        App.MainLogic.refreshModels();
+      }
+    },
+  },
+
   UI: {
     init: function () {
       const E = App.Elements;
@@ -112,7 +199,6 @@ const App = {
       E.mobileConfigBtn = document.getElementById("mobileConfigBtn");
       E.clearBtn = document.getElementById("clearBtn");
       E.mobileClearBtn = document.getElementById("mobileClearBtn");
-      E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
       E.customModelSelectWrapper = document.getElementById(
         "customModelSelectWrapper"
       );
@@ -143,7 +229,11 @@ const App = {
       E.sendBtnLoading = document.getElementById("sendBtnLoading");
       E.configModal = document.getElementById("configModal");
       E.closeConfigBtn = document.getElementById("closeConfigBtn");
+
+      // Provider elements
+      E.providerSelect = document.getElementById("providerSelect");
       E.apiKeyInput = document.getElementById("apiKeyInput");
+
       E.userSystemPromptInput = document.getElementById(
         "userSystemPromptInput"
       );
@@ -169,11 +259,13 @@ const App = {
         "mobileModelSearchInput"
       );
       E.mobileModelList = document.getElementById("mobileModelList");
+      E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
 
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
       App.UI.updateRateLimitStatus();
       App.DarkMode.init();
+      App.Provider.updateUI();
 
       // Auto-update rate limit status every 10 seconds
       setInterval(() => {
@@ -185,7 +277,7 @@ const App = {
         this.style.height = "auto";
         this.style.height = Math.min(this.scrollHeight, 120) + "px";
       });
-      E.darkModeToggleInput?.addEventListener("click", App.DarkMode.toggle);
+
       // Send message on Enter (not Shift+Enter)
       E.messageInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -225,6 +317,13 @@ const App = {
         App.Config.toggleAutoScroll
       );
       E.saveConfigBtn?.addEventListener("click", App.Config.save);
+      E.darkModeToggleInput?.addEventListener("click", App.DarkMode.toggle);
+
+      // Provider event listeners
+      E.providerSelect?.addEventListener(
+        "change",
+        App.Provider.handleProviderChange
+      );
 
       // Model select functionality
       E.customModelSelectDisplay?.addEventListener(
@@ -275,7 +374,6 @@ const App = {
 
       // Close dropdowns when clicking outside
       document.addEventListener("click", function (event) {
-        // Close model select dropdown
         if (
           App.State.isCustomSelectOpen &&
           E.customModelSelectWrapper &&
@@ -284,7 +382,6 @@ const App = {
           App.UI.closeCustomModelSelect();
         }
 
-        // Close mobile model section
         if (
           App.State.mobileModelSectionOpen &&
           E.mobileModelSection &&
@@ -295,7 +392,6 @@ const App = {
           App.UI.closeMobileModelSection();
         }
 
-        // Close modals when clicking overlay (only if click is directly on overlay)
         if (event.target === E.analyzeStyleModal) {
           E.analyzeStyleModal.style.display = "none";
         }
@@ -304,26 +400,102 @@ const App = {
         }
       });
     },
+
+    // Keep all your existing UI methods but update them to work with providers...
+    // I'll show the key updated methods:
+
+    populateCustomModelSelect: function () {
+      const S = App.State;
+      const E = App.Elements;
+      E.customModelList.innerHTML = "";
+      E.mobileModelList.innerHTML = "";
+      const currentProvider = App.Provider.getCurrentProvider();
+      const placeholderText = `Select a ${currentProvider.name} model...`;
+      let currentSelectedNativeValue = E.modelSelect.value;
+      let currentDisplayText = placeholderText;
+      let foundSelectedInNewList = false;
+
+      const modelsToDisplay = S.freeOnly
+        ? S.models.filter((model) => model.id.includes(":free"))
+        : S.models;
+
+      E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`;
+
+      if (modelsToDisplay.length === 0) {
+        const noModelsText = currentProvider.apiKey
+          ? "No models available."
+          : `Set ${currentProvider.name} API Key`;
+        E.customModelList.innerHTML = `<li class="no-models">${noModelsText}</li>`;
+        E.mobileModelList.innerHTML = `<li class="no-models">${noModelsText}</li>`;
+        E.customModelSelectDisplayText.textContent = currentProvider.apiKey
+          ? "No models"
+          : `Set ${currentProvider.name} API Key`;
+        App.UI.setStatus(`0 ${currentProvider.name} models available`);
+        App.UI.filterCustomModelOptions();
+        App.UI.filterMobileModelOptions();
+        return;
+      }
+
+      modelsToDisplay.forEach((model) => {
+        const displayText = `${model.id} - ${model.name || "Unknown"}`;
+
+        // Desktop dropdown
+        const li = document.createElement("li");
+        li.textContent = displayText;
+        li.dataset.value = model.id;
+        E.customModelList.appendChild(li);
+
+        // Mobile dropdown
+        const mobileLi = document.createElement("li");
+        mobileLi.textContent = displayText;
+        mobileLi.dataset.value = model.id;
+        E.mobileModelList.appendChild(mobileLi);
+
+        const option = document.createElement("option");
+        option.value = model.id;
+        option.textContent = displayText;
+        E.modelSelect.appendChild(option);
+
+        if (model.id === currentSelectedNativeValue) {
+          currentDisplayText = displayText;
+          li.classList.add("selected-option");
+          mobileLi.classList.add("selected-option");
+          E.modelSelect.value = currentSelectedNativeValue;
+          foundSelectedInNewList = true;
+        }
+      });
+
+      if (!foundSelectedInNewList) {
+        E.modelSelect.value = "";
+        currentDisplayText = placeholderText;
+      }
+      E.customModelSelectDisplayText.textContent = currentDisplayText;
+
+      App.UI.filterCustomModelOptions();
+      App.UI.filterMobileModelOptions();
+      App.UI.setStatus(
+        `${modelsToDisplay.length} ${currentProvider.name} models available`
+      );
+    },
+
+    // Keep all other existing UI methods unchanged...
     sortModelsTrending: function (models) {
       return models.slice().sort((a, b) => {
-        // If both have trending_rank, sort by it
         if (a.trending_rank != null && b.trending_rank != null) {
           return a.trending_rank - b.trending_rank;
         }
-        // If only one has trending_rank, it comes first
         if (a.trending_rank != null) return -1;
         if (b.trending_rank != null) return 1;
-        // Otherwise, sort alphabetically by id
         return a.id.localeCompare(b.id);
       });
     },
+
     updateRateLimitStatus: function () {
       const S = App.State;
       const E = App.Elements;
       const now = Date.now();
       const oneMinuteAgo = now - 60000;
 
-      // Auto-reset timestamps older than 1 minute
       S.requestTimestamps = S.requestTimestamps.filter((t) => t > oneMinuteAgo);
 
       if (E.rateLimitStatus) {
@@ -387,7 +559,6 @@ const App = {
         }
       });
 
-      // Handle no results message
       let noModelsLi = E.customModelList.querySelector(".no-models");
       if (!noModelsLi && !hasVisibleOptions && listItems.length > 0) {
         noModelsLi = document.createElement("li");
@@ -425,7 +596,6 @@ const App = {
         }
       });
 
-      // Handle no results message
       let noModelsLi = E.mobileModelList.querySelector(".no-models");
       if (!noModelsLi && !hasVisibleOptions && listItems.length > 0) {
         noModelsLi = document.createElement("li");
@@ -509,74 +679,6 @@ const App = {
           item.classList.add("selected-option");
         }
       });
-    },
-
-    populateCustomModelSelect: function () {
-      const S = App.State;
-      const E = App.Elements;
-      E.customModelList.innerHTML = "";
-      E.mobileModelList.innerHTML = "";
-      const placeholderText = "Select a model...";
-      let currentSelectedNativeValue = E.modelSelect.value;
-      let currentDisplayText = placeholderText;
-      let foundSelectedInNewList = false;
-
-      const modelsToDisplay = S.freeOnly
-        ? S.models.filter((model) => model.id.includes(":free"))
-        : S.models;
-
-      E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`;
-
-      if (modelsToDisplay.length === 0) {
-        E.customModelList.innerHTML =
-          '<li class="no-models">No models available.</li>';
-        E.mobileModelList.innerHTML =
-          '<li class="no-models">No models available.</li>';
-        E.customModelSelectDisplayText.textContent = "No models";
-        App.UI.setStatus("0 models available");
-        App.UI.filterCustomModelOptions();
-        App.UI.filterMobileModelOptions();
-        return;
-      }
-
-      modelsToDisplay.forEach((model) => {
-        const displayText = `${model.id} - ${model.name || "Unknown"}`;
-
-        // Desktop dropdown
-        const li = document.createElement("li");
-        li.textContent = displayText;
-        li.dataset.value = model.id;
-        E.customModelList.appendChild(li);
-
-        // Mobile dropdown
-        const mobileLi = document.createElement("li");
-        mobileLi.textContent = displayText;
-        mobileLi.dataset.value = model.id;
-        E.mobileModelList.appendChild(mobileLi);
-
-        const option = document.createElement("option");
-        option.value = model.id;
-        option.textContent = displayText;
-        E.modelSelect.appendChild(option);
-
-        if (model.id === currentSelectedNativeValue) {
-          currentDisplayText = displayText;
-          li.classList.add("selected-option");
-          mobileLi.classList.add("selected-option");
-          E.modelSelect.value = currentSelectedNativeValue;
-          foundSelectedInNewList = true;
-        }
-      });
-
-      if (!foundSelectedInNewList) {
-        E.modelSelect.value = "";
-        currentDisplayText = placeholderText;
-      }
-      E.customModelSelectDisplayText.textContent = currentDisplayText;
-
-      App.UI.filterCustomModelOptions();
-      App.UI.filterMobileModelOptions();
-      App.UI.setStatus(`${modelsToDisplay.length} models available`);
     },
 
     updateAutoScrollToggleUI: function () {
@@ -729,12 +831,14 @@ const App = {
 
   API: {
     fetchModels: async function () {
-      const S = App.State;
-      if (!S.apiKey) return null;
-      const response = await fetch("https://openrouter.ai/api/v1/models", {
+      const provider = App.Provider.getCurrentProvider();
+      if (!provider.apiKey) return null;
+
+      const response = await fetch(`${provider.baseUrl}/models`, {
         headers: {
-          Authorization: `Bearer ${S.apiKey}`,
+          Authorization: `Bearer ${provider.apiKey}`,
           "Content-Type": "application/json",
+          ...provider.headers,
         },
       });
       if (!response.ok)
@@ -743,20 +847,20 @@ const App = {
     },
 
     fetchChatCompletion: async function (payload) {
-      const S = App.State;
-      return await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const provider = App.Provider.getCurrentProvider();
+      return await fetch(`${provider.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${S.apiKey}`,
+          Authorization: `Bearer ${provider.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": window.location.href,
-          "X-Title": "OpenRouter Chat Tool",
+          ...provider.headers,
         },
         body: JSON.stringify(payload),
       });
     },
   },
 
+  // Keep all your existing modules (Styles, DarkMode) unchanged...
   Styles: {
     init: function () {
       App.Styles.load();
@@ -849,8 +953,12 @@ const App = {
       const selectedModel = E.modelSelect.value;
 
       if (S.isAnalyzingStyle) return;
-      if (!S.apiKey) {
-        alert("API Key is not set. Please set it in the configuration.");
+
+      const currentProvider = App.Provider.getCurrentProvider();
+      if (!currentProvider.apiKey) {
+        alert(
+          `${currentProvider.name} API Key is not set. Please set it in the configuration.`
+        );
         return;
       }
       if (!selectedModel) {
@@ -908,7 +1016,6 @@ ${sampleText}`;
           );
         }
 
-        // Add the new style to the list
         const existingIndex = S.writingStyles.findIndex(
           (s) => s.name === newName
         );
@@ -950,6 +1057,7 @@ ${sampleText}`;
       }
     },
   },
+
   DarkMode: {
     init: function () {
       App.DarkMode.apply();
@@ -983,10 +1091,21 @@ ${sampleText}`;
     open: function () {
       const S = App.State;
       const E = App.Elements;
-      E.apiKeyInput.value = S.apiKey;
+
+      // Populate provider select
+      E.providerSelect.innerHTML = "";
+      Object.keys(S.providers).forEach((providerId) => {
+        const provider = S.providers[providerId];
+        const option = document.createElement("option");
+        option.value = providerId;
+        option.textContent = provider.name;
+        E.providerSelect.appendChild(option);
+      });
+
       E.userSystemPromptInput.value = S.userSystemPrompt;
       App.UI.updateAutoScrollToggleUI();
       App.DarkMode.updateToggleUI();
+      App.Provider.updateUI();
       App.Styles.init();
       E.configModal.style.display = "block";
     },
@@ -998,16 +1117,20 @@ ${sampleText}`;
     save: function () {
       const S = App.State;
       const E = App.Elements;
-      S.apiKey = E.apiKeyInput.value.trim();
+
+      // Save current provider's API key
+      const currentProvider = App.Provider.getCurrentProvider();
+      const apiKey = E.apiKeyInput.value.trim();
+      App.Provider.saveApiKey(S.currentProvider, apiKey);
+
       S.userSystemPrompt = E.userSystemPromptInput.value.trim();
 
-      localStorage.setItem("openrouter_api_key", S.apiKey);
       localStorage.setItem("openrouter_user_system_prompt", S.userSystemPrompt);
       localStorage.setItem("openrouter_auto_scroll", S.autoScrollEnabled);
       localStorage.setItem("openrouter_dark_mode", S.darkMode);
 
       App.Config.close();
-      if (S.apiKey) App.MainLogic.refreshModels();
+      if (currentProvider.apiKey) App.MainLogic.refreshModels();
     },
 
     toggleAutoScroll: function () {
@@ -1020,15 +1143,14 @@ ${sampleText}`;
     init: function () {
       App.UI.init();
       App.Styles.init();
-      if (App.State.apiKey) {
+      const currentProvider = App.Provider.getCurrentProvider();
+      if (currentProvider.apiKey) {
         App.MainLogic.refreshModels();
       } else {
-        App.Elements.customModelSelectDisplayText.textContent = "Set API Key";
-        App.Elements.customModelList.innerHTML =
-          '<li class="no-models">Set API Key to load models.</li>';
+        App.Elements.customModelSelectDisplayText.textContent = `Set ${currentProvider.name} API Key`;
+        App.Elements.customModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
         if (App.Elements.mobileModelList) {
-          App.Elements.mobileModelList.innerHTML =
-            '<li class="no-models">Set API Key to load models.</li>';
+          App.Elements.mobileModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
         }
       }
     },
@@ -1043,30 +1165,24 @@ ${sampleText}`;
       const S = App.State;
       const E = App.Elements;
       const UI = App.UI;
+      const currentProvider = App.Provider.getCurrentProvider();
 
-      if (!S.apiKey) {
-        alert("Please set your API key first");
+      if (!currentProvider.apiKey) {
+        alert(`Please set your ${currentProvider.name} API key first`);
         App.Config.open();
-        E.customModelSelectDisplayText.textContent = "Set API Key";
-        E.customModelList.innerHTML =
-          '<li class="no-models">Set API Key to load models.</li>';
+        E.customModelSelectDisplayText.textContent = `Set ${currentProvider.name} API Key`;
+        E.customModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
         if (E.mobileModelList) {
-          E.mobileModelList.innerHTML =
-            '<li class="no-models">Set API Key to load models.</li>';
+          E.mobileModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
         }
         return;
       }
 
       E.refreshBtn.disabled = true;
       if (E.mobileRefreshBtn) E.mobileRefreshBtn.disabled = true;
-      UI.setStatus("Fetching models...", true);
+      UI.setStatus(`Fetching ${currentProvider.name} models...`, true);
       E.customModelSelectDisplayText.textContent = "Loading...";
 
-      // try {
-      //   const data = await App.API.fetchModels();
-      //   S.models = App.UI.sortModelsTrending(data.data || []);
-      //   UI.populateCustomModelSelect();
-      // }
       try {
         const data = await App.API.fetchModels();
         S.models = data.data || [];
@@ -1074,7 +1190,9 @@ ${sampleText}`;
       } catch (error) {
         console.error("Error fetching models:", error);
         UI.setStatus(`Error: ${error.message}`);
-        alert("Failed to fetch models. Please check your API key.");
+        alert(
+          `Failed to fetch ${currentProvider.name} models. Please check your API key.`
+        );
         E.customModelSelectDisplayText.textContent = "Error";
         E.customModelList.innerHTML =
           '<li class="no-models">Error loading models.</li>';
@@ -1092,8 +1210,8 @@ ${sampleText}`;
       const S = App.State;
       const E = App.Elements;
       const UI = App.UI;
+      const currentProvider = App.Provider.getCurrentProvider();
 
-      // Update rate limit status first
       UI.updateRateLimitStatus();
 
       if (S.requestTimestamps.length >= 10) {
@@ -1105,7 +1223,7 @@ ${sampleText}`;
       const selectedModel = E.modelSelect.value;
       const message = E.messageInput.value.trim();
 
-      if (!message || !S.apiKey || S.isGenerating) return;
+      if (!message || !currentProvider.apiKey || S.isGenerating) return;
       if (!selectedModel) {
         alert("Please select a model from the dropdown.");
         return;
