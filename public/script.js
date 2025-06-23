@@ -1,8 +1,7 @@
 const App = {
   State: {
     // Provider management
-    currentProvider:
-      localStorage.getItem("openrouter_current_provider") || "openrouter",
+    currentProvider: localStorage.getItem("openrouter_current_provider") || "openrouter",
     providers: {
       openrouter: {
         name: "OpenRouter",
@@ -12,22 +11,53 @@ const App = {
           "HTTP-Referer": window.location.href,
           "X-Title": "OpenRouter Chat Tool",
         },
+        chatEndpoint: "/chat/completions",
+        modelsEndpoint: "/models",
+        authHeader: "Bearer"
       },
       siliconflow: {
         name: "SiliconFlow",
         apiKey: localStorage.getItem("siliconflow_api_key") || "",
         baseUrl: "https://api.ap.siliconflow.com/v1",
         headers: {},
+        chatEndpoint: "/chat/completions",
+        modelsEndpoint: "/models",
+        authHeader: "Bearer"
       },
+      huggingface: {
+        name: "Hugging Face",
+        apiKey: localStorage.getItem("huggingface_api_key") || "",
+        baseUrl: "https://api-inference.huggingface.co",
+        headers: {},
+        chatEndpoint: "/v1/chat/completions",
+        modelsEndpoint: null, // HF doesn't have a standard models endpoint
+        authHeader: "Bearer",
+        predefinedModels: [
+          { id: "microsoft/phi-4", name: "Microsoft Phi-4" },
+          { id: "meta-llama/Meta-Llama-3.1-8B-Instruct", name: "Llama 3.1 8B Instruct" },
+          { id: "google/gemma-2-2b-it", name: "Gemma 2 2B IT" },
+          { id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", name: "DeepSeek R1 Distill Qwen 1.5B" },
+          { id: "Qwen/Qwen2.5-7B-Instruct-1M", name: "Qwen 2.5 7B Instruct 1M" },
+          { id: "Qwen/Qwen2.5-Coder-32B-Instruct", name: "Qwen 2.5 Coder 32B Instruct" },
+          { id: "deepseek-ai/DeepSeek-R1", name: "DeepSeek R1" },
+          { id: "Qwen/Qwen2.5-VL-7B-Instruct", name: "Qwen 2.5 VL 7B Instruct" }
+        ]
+      },
+      cohere: {
+        name: "Cohere",
+        apiKey: localStorage.getItem("cohere_api_key") || "",
+        baseUrl: "https://api.cohere.com/v2",
+        headers: {},
+        chatEndpoint: "/chat",
+        modelsEndpoint: "/models",
+        authHeader: "Bearer",
+        useV2Format: true // Cohere uses different request/response format
+      }
     },
-
+    
     // Existing state properties
-    userSystemPrompt:
-      localStorage.getItem("openrouter_user_system_prompt") || "",
-    autoScrollEnabled:
-      localStorage.getItem("openrouter_auto_scroll") === null
-        ? true
-        : localStorage.getItem("openrouter_auto_scroll") === "true",
+    userSystemPrompt: localStorage.getItem("openrouter_user_system_prompt") || "",
+    autoScrollEnabled: localStorage.getItem("openrouter_auto_scroll") === null ? true : localStorage.getItem("openrouter_auto_scroll") === "true",
     darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
     freeOnly: true,
     models: [],
@@ -40,16 +70,14 @@ const App = {
     isCustomSelectOpen: false,
     requestTimestamps: [],
     writingStyles: [],
-    selectedStyleName:
-      localStorage.getItem("openrouter_selected_style") || "Default",
+    selectedStyleName: localStorage.getItem("openrouter_selected_style") || "Default",
     mobileModelSectionOpen: false,
   },
 
   Elements: {
     // Add provider elements
     providerSelect: null,
-    providerApiKeyInputs: {},
-
+    
     // Existing elements (keeping all your existing element definitions)
     header: null,
     configBtn: null,
@@ -76,7 +104,7 @@ const App = {
     sendBtnLoading: null,
     configModal: null,
     closeConfigBtn: null,
-    apiKeyInput: null, // This will be repurposed for current provider
+    apiKeyInput: null,
     userSystemPromptInput: null,
     autoScrollToggleInput: null,
     saveConfigBtn: null,
@@ -104,63 +132,58 @@ const App = {
       { name: "Default", content: "" },
       {
         name: "Professional & Formal",
-        content:
-          "Your writing style is professional and formal. Use clear, concise language, proper grammar, and a respectful tone. Avoid slang, contractions, and overly casual phrasing.",
+        content: "Your writing style is professional and formal. Use clear, concise language, proper grammar, and a respectful tone. Avoid slang, contractions, and overly casual phrasing.",
       },
       {
-        name: "Casual & Conversational",
-        content:
-          "Your writing style is casual and conversational. Feel free to use contractions, everyday language, and a friendly, approachable tone. Keep it light and easy to read.",
+        name: "Casual & Conversational", 
+        content: "Your writing style is casual and conversational. Feel free to use contractions, everyday language, and a friendly, approachable tone. Keep it light and easy to read.",
       },
       {
         name: "Humorous & Witty",
-        content:
-          "Your writing style is humorous and witty. Incorporate clever remarks, puns, and light-hearted jokes where appropriate. Your goal is to be engaging and amusing.",
+        content: "Your writing style is humorous and witty. Incorporate clever remarks, puns, and light-hearted jokes where appropriate. Your goal is to be engaging and amusing.",
       },
       {
         name: "Persuasive & Inspiring",
-        content:
-          "Your writing style is persuasive and inspiring. Use powerful words, rhetorical questions, and a confident tone to motivate and convince the reader. Appeal to emotions and logic.",
+        content: "Your writing style is persuasive and inspiring. Use powerful words, rhetorical questions, and a confident tone to motivate and convince the reader. Appeal to emotions and logic.",
       },
       {
         name: "Descriptive & Creative",
-        content:
-          "Your writing style is descriptive and creative. Use vivid imagery, sensory details, and metaphors to paint a picture with your words. Be imaginative and artistic in your language.",
+        content: "Your writing style is descriptive and creative. Use vivid imagery, sensory details, and metaphors to paint a picture with your words. Be imaginative and artistic in your language.",
       },
     ],
   },
 
-  // Add provider management
+  // Provider management
   Provider: {
-    getCurrentProvider: function () {
+    getCurrentProvider: function() {
       return App.State.providers[App.State.currentProvider];
     },
 
-    getCurrentApiKey: function () {
+    getCurrentApiKey: function() {
       return App.Provider.getCurrentProvider().apiKey;
     },
 
-    setCurrentProvider: function (providerId) {
+    setCurrentProvider: function(providerId) {
       App.State.currentProvider = providerId;
       localStorage.setItem("openrouter_current_provider", providerId);
       App.Provider.updateUI();
     },
 
-    updateUI: function () {
+    updateUI: function() {
       const E = App.Elements;
       const currentProvider = App.Provider.getCurrentProvider();
-
+      
       // Update provider select
       if (E.providerSelect) {
         E.providerSelect.value = App.State.currentProvider;
       }
-
+      
       // Update API key input to show current provider's key
       if (E.apiKeyInput) {
         E.apiKeyInput.value = currentProvider.apiKey;
         E.apiKeyInput.placeholder = `Enter your ${currentProvider.name} API key`;
       }
-
+      
       // Update model display text
       if (E.customModelSelectDisplayText) {
         const hasApiKey = currentProvider.apiKey;
@@ -168,21 +191,26 @@ const App = {
           E.customModelSelectDisplayText.textContent = `Set ${currentProvider.name} API Key`;
         }
       }
+
+      // Hide/show free toggle for providers that don't support it
+      const supportsFreeToggle = App.State.currentProvider === "openrouter";
+      if (E.freeToggle) E.freeToggle.style.display = supportsFreeToggle ? 'flex' : 'none';
+      if (E.mobileFreeToggle) E.mobileFreeToggle.style.display = supportsFreeToggle ? 'flex' : 'none';
     },
 
-    saveApiKey: function (providerId, apiKey) {
+    saveApiKey: function(providerId, apiKey) {
       App.State.providers[providerId].apiKey = apiKey;
       localStorage.setItem(`${providerId}_api_key`, apiKey);
     },
 
-    handleProviderChange: function () {
+    handleProviderChange: function() {
       const newProvider = App.Elements.providerSelect.value;
       App.Provider.setCurrentProvider(newProvider);
-
+      
       // Clear current models and refresh
       App.State.models = [];
       App.UI.populateCustomModelSelect();
-
+      
       // Refresh models for new provider
       const provider = App.Provider.getCurrentProvider();
       if (provider.apiKey) {
@@ -191,29 +219,21 @@ const App = {
     },
   },
 
+  // Keep all your existing UI methods...
   UI: {
     init: function () {
       const E = App.Elements;
+      // ... (all your existing element assignments) ...
       E.header = document.querySelector(".header");
       E.configBtn = document.getElementById("configBtn");
       E.mobileConfigBtn = document.getElementById("mobileConfigBtn");
       E.clearBtn = document.getElementById("clearBtn");
       E.mobileClearBtn = document.getElementById("mobileClearBtn");
-      E.customModelSelectWrapper = document.getElementById(
-        "customModelSelectWrapper"
-      );
-      E.customModelSelectDisplay = document.getElementById(
-        "customModelSelectDisplay"
-      );
-      E.customModelSelectDisplayText = document.getElementById(
-        "customModelSelectDisplayText"
-      );
-      E.customModelSelectDropdown = document.getElementById(
-        "customModelSelectDropdown"
-      );
-      E.customModelSearchInput = document.getElementById(
-        "customModelSearchInput"
-      );
+      E.customModelSelectWrapper = document.getElementById("customModelSelectWrapper");
+      E.customModelSelectDisplay = document.getElementById("customModelSelectDisplay");
+      E.customModelSelectDisplayText = document.getElementById("customModelSelectDisplayText");
+      E.customModelSelectDropdown = document.getElementById("customModelSelectDropdown");
+      E.customModelSearchInput = document.getElementById("customModelSearchInput");
       E.customModelList = document.getElementById("customModelList");
       E.modelSelect = document.getElementById("modelSelect");
       E.refreshBtn = document.getElementById("refreshBtn");
@@ -229,17 +249,13 @@ const App = {
       E.sendBtnLoading = document.getElementById("sendBtnLoading");
       E.configModal = document.getElementById("configModal");
       E.closeConfigBtn = document.getElementById("closeConfigBtn");
-
+      
       // Provider elements
       E.providerSelect = document.getElementById("providerSelect");
       E.apiKeyInput = document.getElementById("apiKeyInput");
-
-      E.userSystemPromptInput = document.getElementById(
-        "userSystemPromptInput"
-      );
-      E.autoScrollToggleInput = document.getElementById(
-        "autoScrollToggleInput"
-      );
+      
+      E.userSystemPromptInput = document.getElementById("userSystemPromptInput");
+      E.autoScrollToggleInput = document.getElementById("autoScrollToggleInput");
       E.saveConfigBtn = document.getElementById("saveConfigBtn");
       E.rateLimitStatus = document.getElementById("rateLimitStatus");
       E.writingStyleSelect = document.getElementById("writingStyleSelect");
@@ -255,9 +271,7 @@ const App = {
       E.analyzeAndCreateBtn = document.getElementById("analyzeAndCreateBtn");
       E.mobileModelBtn = document.getElementById("mobileModelBtn");
       E.mobileModelSection = document.getElementById("mobileModelSection");
-      E.mobileModelSearchInput = document.getElementById(
-        "mobileModelSearchInput"
-      );
+      E.mobileModelSearchInput = document.getElementById("mobileModelSearchInput");
       E.mobileModelList = document.getElementById("mobileModelList");
       E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
 
@@ -286,7 +300,7 @@ const App = {
         }
       });
 
-      // Button event listeners
+      // All your existing event listeners...
       E.configBtn?.addEventListener("click", function (e) {
         e.stopPropagation();
         App.Config.open();
@@ -302,96 +316,42 @@ const App = {
       E.clearBtn?.addEventListener("click", App.MainLogic.clearChat);
       E.mobileClearBtn?.addEventListener("click", App.MainLogic.clearChat);
       E.refreshBtn?.addEventListener("click", App.MainLogic.refreshModels);
-      E.mobileRefreshBtn?.addEventListener(
-        "click",
-        App.MainLogic.refreshModels
-      );
+      E.mobileRefreshBtn?.addEventListener("click", App.MainLogic.refreshModels);
       E.freeToggle?.addEventListener("click", App.MainLogic.toggleFreeOnly);
-      E.mobileFreeToggle?.addEventListener(
-        "click",
-        App.MainLogic.toggleFreeOnly
-      );
+      E.mobileFreeToggle?.addEventListener("click", App.MainLogic.toggleFreeOnly);
       E.sendBtn?.addEventListener("click", App.MainLogic.sendMessage);
-      E.autoScrollToggleInput?.addEventListener(
-        "click",
-        App.Config.toggleAutoScroll
-      );
+      E.autoScrollToggleInput?.addEventListener("click", App.Config.toggleAutoScroll);
       E.saveConfigBtn?.addEventListener("click", App.Config.save);
       E.darkModeToggleInput?.addEventListener("click", App.DarkMode.toggle);
 
       // Provider event listeners
-      E.providerSelect?.addEventListener(
-        "change",
-        App.Provider.handleProviderChange
-      );
+      E.providerSelect?.addEventListener("change", App.Provider.handleProviderChange);
 
-      // Model select functionality
-      E.customModelSelectDisplay?.addEventListener(
-        "click",
-        App.UI.toggleCustomModelSelect
-      );
-      E.customModelSearchInput?.addEventListener(
-        "input",
-        App.UI.filterCustomModelOptions
-      );
-      E.customModelList?.addEventListener(
-        "click",
-        App.UI.handleCustomModelOptionSelect
-      );
-
-      // Mobile model section
-      E.mobileModelBtn?.addEventListener(
-        "click",
-        App.UI.toggleMobileModelSection
-      );
-      E.mobileModelSearchInput?.addEventListener(
-        "input",
-        App.UI.filterMobileModelOptions
-      );
-      E.mobileModelList?.addEventListener(
-        "click",
-        App.UI.handleMobileModelOptionSelect
-      );
-
-      // Style management
-      E.writingStyleSelect?.addEventListener(
-        "change",
-        App.Styles.handleStyleSelectChange
-      );
+      // All your existing model select, mobile, and style event listeners...
+      E.customModelSelectDisplay?.addEventListener("click", App.UI.toggleCustomModelSelect);
+      E.customModelSearchInput?.addEventListener("input", App.UI.filterCustomModelOptions);
+      E.customModelList?.addEventListener("click", App.UI.handleCustomModelOptionSelect);
+      E.mobileModelBtn?.addEventListener("click", App.UI.toggleMobileModelSection);
+      E.mobileModelSearchInput?.addEventListener("input", App.UI.filterMobileModelOptions);
+      E.mobileModelList?.addEventListener("click", App.UI.handleMobileModelOptionSelect);
+      E.writingStyleSelect?.addEventListener("change", App.Styles.handleStyleSelectChange);
       E.deleteStyleBtn?.addEventListener("click", App.Styles.delete);
-
-      // Style analysis modal
       E.openAnalyzeModalBtn?.addEventListener("click", () => {
         E.analyzeStyleModal.style.display = "block";
       });
       E.closeAnalyzeModalBtn?.addEventListener("click", () => {
         E.analyzeStyleModal.style.display = "none";
       });
-      E.analyzeAndCreateBtn?.addEventListener(
-        "click",
-        App.Styles.analyzeFromText
-      );
+      E.analyzeAndCreateBtn?.addEventListener("click", App.Styles.analyzeFromText);
 
       // Close dropdowns when clicking outside
       document.addEventListener("click", function (event) {
-        if (
-          App.State.isCustomSelectOpen &&
-          E.customModelSelectWrapper &&
-          !E.customModelSelectWrapper.contains(event.target)
-        ) {
+        if (App.State.isCustomSelectOpen && E.customModelSelectWrapper && !E.customModelSelectWrapper.contains(event.target)) {
           App.UI.closeCustomModelSelect();
         }
-
-        if (
-          App.State.mobileModelSectionOpen &&
-          E.mobileModelSection &&
-          E.mobileModelBtn &&
-          !E.mobileModelSection.contains(event.target) &&
-          !E.mobileModelBtn.contains(event.target)
-        ) {
+        if (App.State.mobileModelSectionOpen && E.mobileModelSection && E.mobileModelBtn && !E.mobileModelSection.contains(event.target) && !E.mobileModelBtn.contains(event.target)) {
           App.UI.closeMobileModelSection();
         }
-
         if (event.target === E.analyzeStyleModal) {
           E.analyzeStyleModal.style.display = "none";
         }
@@ -400,9 +360,6 @@ const App = {
         }
       });
     },
-
-    // Keep all your existing UI methods but update them to work with providers...
-    // I'll show the key updated methods:
 
     populateCustomModelSelect: function () {
       const S = App.State;
@@ -415,21 +372,24 @@ const App = {
       let currentDisplayText = placeholderText;
       let foundSelectedInNewList = false;
 
-      const modelsToDisplay = S.freeOnly
-        ? S.models.filter((model) => model.id.includes(":free"))
-        : S.models;
+      // For Hugging Face, use predefined models if no API models available
+      let modelsToDisplay = S.models;
+      if (S.currentProvider === "huggingface" && S.models.length === 0 && currentProvider.predefinedModels) {
+        modelsToDisplay = currentProvider.predefinedModels;
+      }
+
+      // Apply free filter only for OpenRouter
+      if (S.freeOnly && S.currentProvider === "openrouter") {
+        modelsToDisplay = modelsToDisplay.filter((model) => model.id.includes(":free"));
+      }
 
       E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`;
 
       if (modelsToDisplay.length === 0) {
-        const noModelsText = currentProvider.apiKey
-          ? "No models available."
-          : `Set ${currentProvider.name} API Key`;
+        const noModelsText = currentProvider.apiKey ? "No models available." : `Set ${currentProvider.name} API Key`;
         E.customModelList.innerHTML = `<li class="no-models">${noModelsText}</li>`;
         E.mobileModelList.innerHTML = `<li class="no-models">${noModelsText}</li>`;
-        E.customModelSelectDisplayText.textContent = currentProvider.apiKey
-          ? "No models"
-          : `Set ${currentProvider.name} API Key`;
+        E.customModelSelectDisplayText.textContent = currentProvider.apiKey ? "No models" : `Set ${currentProvider.name} API Key`;
         App.UI.setStatus(`0 ${currentProvider.name} models available`);
         App.UI.filterCustomModelOptions();
         App.UI.filterMobileModelOptions();
@@ -473,12 +433,10 @@ const App = {
 
       App.UI.filterCustomModelOptions();
       App.UI.filterMobileModelOptions();
-      App.UI.setStatus(
-        `${modelsToDisplay.length} ${currentProvider.name} models available`
-      );
+      App.UI.setStatus(`${modelsToDisplay.length} ${currentProvider.name} models available`);
     },
 
-    // Keep all other existing UI methods unchanged...
+    // Keep all your other existing UI methods unchanged...
     sortModelsTrending: function (models) {
       return models.slice().sort((a, b) => {
         if (a.trending_rank != null && b.trending_rank != null) {
@@ -569,9 +527,7 @@ const App = {
         if (hasVisibleOptions) {
           noModelsLi.remove();
         } else {
-          noModelsLi.textContent = searchTerm
-            ? "No models match search."
-            : "No models available.";
+          noModelsLi.textContent = searchTerm ? "No models match search." : "No models available.";
         }
       }
     },
@@ -606,29 +562,22 @@ const App = {
         if (hasVisibleOptions) {
           noModelsLi.remove();
         } else {
-          noModelsLi.textContent = searchTerm
-            ? "No models match search."
-            : "No models available.";
+          noModelsLi.textContent = searchTerm ? "No models match search." : "No models available.";
         }
       }
     },
 
     handleCustomModelOptionSelect: function (event) {
       const E = App.Elements;
-      if (
-        event.target.tagName === "LI" &&
-        !event.target.classList.contains("no-models")
-      ) {
+      if (event.target.tagName === "LI" && !event.target.classList.contains("no-models")) {
         const selectedValue = event.target.dataset.value;
         const selectedText = event.target.textContent;
 
         E.customModelSelectDisplayText.textContent = selectedText;
         E.modelSelect.value = selectedValue;
 
-        const currentlySelected =
-          E.customModelList.querySelector(".selected-option");
-        if (currentlySelected)
-          currentlySelected.classList.remove("selected-option");
+        const currentlySelected = E.customModelList.querySelector(".selected-option");
+        if (currentlySelected) currentlySelected.classList.remove("selected-option");
         event.target.classList.add("selected-option");
 
         App.UI.closeCustomModelSelect();
@@ -638,20 +587,15 @@ const App = {
 
     handleMobileModelOptionSelect: function (event) {
       const E = App.Elements;
-      if (
-        event.target.tagName === "LI" &&
-        !event.target.classList.contains("no-models")
-      ) {
+      if (event.target.tagName === "LI" && !event.target.classList.contains("no-models")) {
         const selectedValue = event.target.dataset.value;
         const selectedText = event.target.textContent;
 
         E.customModelSelectDisplayText.textContent = selectedText;
         E.modelSelect.value = selectedValue;
 
-        const currentlySelected =
-          E.mobileModelList.querySelector(".selected-option");
-        if (currentlySelected)
-          currentlySelected.classList.remove("selected-option");
+        const currentlySelected = E.mobileModelList.querySelector(".selected-option");
+        if (currentlySelected) currentlySelected.classList.remove("selected-option");
         event.target.classList.add("selected-option");
 
         App.UI.closeMobileModelSection();
@@ -682,18 +626,12 @@ const App = {
     },
 
     updateAutoScrollToggleUI: function () {
-      App.Elements.autoScrollToggleInput.classList.toggle(
-        "active",
-        App.State.autoScrollEnabled
-      );
+      App.Elements.autoScrollToggleInput.classList.toggle("active", App.State.autoScrollEnabled);
     },
 
     updateFreeOnlyToggleUI: function () {
       App.Elements.freeToggle.classList.toggle("active", App.State.freeOnly);
-      App.Elements.mobileFreeToggle.classList.toggle(
-        "active",
-        App.State.freeOnly
-      );
+      App.Elements.mobileFreeToggle.classList.toggle("active", App.State.freeOnly);
     },
 
     setStatus: function (message, loading = false) {
@@ -741,8 +679,7 @@ const App = {
         <div class="thinking-content"></div>`;
 
       E.messages.appendChild(thinkingContainer);
-      S.currentThinkingDiv =
-        thinkingContainer.querySelector(".thinking-content");
+      S.currentThinkingDiv = thinkingContainer.querySelector(".thinking-content");
 
       if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
     },
@@ -782,12 +719,7 @@ const App = {
         btn.title = `Copy as ${type === "MD" ? "Markdown" : "Plain Text"}`;
         btn.onclick = (e) => {
           e.stopPropagation();
-          App.UI.handleCopy(
-            btn,
-            messageDiv.dataset.rawContent,
-            type.toLowerCase(),
-            role
-          );
+          App.UI.handleCopy(btn, messageDiv.dataset.rawContent, type.toLowerCase(), role);
         };
         actionsDiv.appendChild(btn);
       });
@@ -833,34 +765,70 @@ const App = {
     fetchModels: async function () {
       const provider = App.Provider.getCurrentProvider();
       if (!provider.apiKey) return null;
-
-      const response = await fetch(`${provider.baseUrl}/models`, {
+      
+      // Hugging Face doesn't have a standard models endpoint, use predefined models
+      if (App.State.currentProvider === "huggingface") {
+        return { data: provider.predefinedModels || [] };
+      }
+      
+      // Cohere uses different endpoint for models
+      const endpoint = provider.modelsEndpoint || "/models";
+      
+      const response = await fetch(`${provider.baseUrl}${endpoint}`, {
         headers: {
-          Authorization: `Bearer ${provider.apiKey}`,
+          Authorization: `${provider.authHeader} ${provider.apiKey}`,
           "Content-Type": "application/json",
           ...provider.headers,
         },
       });
-      if (!response.ok)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       return await response.json();
     },
 
     fetchChatCompletion: async function (payload) {
       const provider = App.Provider.getCurrentProvider();
-      return await fetch(`${provider.baseUrl}/chat/completions`, {
+      
+      let requestPayload = payload;
+      let endpoint = provider.chatEndpoint;
+      
+      // Handle Cohere's different format
+      if (provider.useV2Format) {
+        // Convert OpenAI format to Cohere format
+        requestPayload = App.API.convertToCohere(payload);
+      }
+      
+      return await fetch(`${provider.baseUrl}${endpoint}`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${provider.apiKey}`,
+          Authorization: `${provider.authHeader} ${provider.apiKey}`,
           "Content-Type": "application/json",
           ...provider.headers,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestPayload),
       });
+    },
+
+    convertToCohere: function(openAIPayload) {
+      // Convert OpenAI format to Cohere v2 format
+      const coherePayload = {
+        model: openAIPayload.model,
+        messages: openAIPayload.messages,
+        stream: openAIPayload.stream || false,
+      };
+
+      // Map OpenAI parameters to Cohere parameters
+      if (openAIPayload.max_tokens) coherePayload.max_tokens = openAIPayload.max_tokens;
+      if (openAIPayload.temperature) coherePayload.temperature = openAIPayload.temperature;
+      if (openAIPayload.top_p) coherePayload.p = openAIPayload.top_p;
+      if (openAIPayload.frequency_penalty) coherePayload.frequency_penalty = openAIPayload.frequency_penalty;
+      if (openAIPayload.presence_penalty) coherePayload.presence_penalty = openAIPayload.presence_penalty;
+      if (openAIPayload.stop) coherePayload.stop_sequences = openAIPayload.stop;
+
+      return coherePayload;
     },
   },
 
-  // Keep all your existing modules (Styles, DarkMode) unchanged...
+  // Keep all your existing modules (Styles, DarkMode, Config) unchanged...
   Styles: {
     init: function () {
       App.Styles.load();
@@ -870,11 +838,8 @@ const App = {
     load: function () {
       const S = App.State;
       const C = App.Constants;
-      const savedStyles =
-        JSON.parse(localStorage.getItem("openrouter_writing_styles")) || [];
-      const customStyles = savedStyles.filter(
-        (saved) => !C.DEFAULT_STYLES.some((def) => def.name === saved.name)
-      );
+      const savedStyles = JSON.parse(localStorage.getItem("openrouter_writing_styles")) || [];
+      const customStyles = savedStyles.filter((saved) => !C.DEFAULT_STYLES.some((def) => def.name === saved.name));
       S.writingStyles = [...C.DEFAULT_STYLES, ...customStyles];
     },
 
@@ -896,9 +861,7 @@ const App = {
       const S = App.State;
       const E = App.Elements;
       const selectedName = E.writingStyleSelect.value;
-      const selectedStyle = S.writingStyles.find(
-        (s) => s.name === selectedName
-      );
+      const selectedStyle = S.writingStyles.find((s) => s.name === selectedName);
 
       if (selectedStyle) {
         E.writingStyleContent.value = selectedStyle.content;
@@ -912,20 +875,14 @@ const App = {
       const S = App.State;
       const selectedName = E.writingStyleSelect.value;
 
-      const isDefault = App.Constants.DEFAULT_STYLES.some(
-        (s) => s.name === selectedName
-      );
+      const isDefault = App.Constants.DEFAULT_STYLES.some((s) => s.name === selectedName);
       if (isDefault) {
         alert("You cannot delete a default style.");
         return;
       }
 
-      if (
-        confirm(`Are you sure you want to delete the style '${selectedName}'?`)
-      ) {
-        S.writingStyles = S.writingStyles.filter(
-          (s) => s.name !== selectedName
-        );
+      if (confirm(`Are you sure you want to delete the style '${selectedName}'?`)) {
+        S.writingStyles = S.writingStyles.filter((s) => s.name !== selectedName);
         App.Styles.persist();
         S.selectedStyleName = "Default";
         localStorage.setItem("openrouter_selected_style", "Default");
@@ -934,14 +891,8 @@ const App = {
     },
 
     persist: function () {
-      const customStyles = App.State.writingStyles.filter(
-        (style) =>
-          !App.Constants.DEFAULT_STYLES.some((def) => def.name === style.name)
-      );
-      localStorage.setItem(
-        "openrouter_writing_styles",
-        JSON.stringify(customStyles)
-      );
+      const customStyles = App.State.writingStyles.filter((style) => !App.Constants.DEFAULT_STYLES.some((def) => def.name === style.name));
+      localStorage.setItem("openrouter_writing_styles", JSON.stringify(customStyles));
     },
 
     analyzeFromText: async function () {
@@ -953,24 +904,18 @@ const App = {
       const selectedModel = E.modelSelect.value;
 
       if (S.isAnalyzingStyle) return;
-
+      
       const currentProvider = App.Provider.getCurrentProvider();
       if (!currentProvider.apiKey) {
-        alert(
-          `${currentProvider.name} API Key is not set. Please set it in the configuration.`
-        );
+        alert(`${currentProvider.name} API Key is not set. Please set it in the configuration.`);
         return;
       }
       if (!selectedModel) {
-        alert(
-          "Please select a model on the main screen first. A powerful model is recommended for analysis."
-        );
+        alert("Please select a model on the main screen first. A powerful model is recommended for analysis.");
         return;
       }
       if (!sampleText || !newName) {
-        alert(
-          "Please provide both a sample text and a name for the new style."
-        );
+        alert("Please provide both a sample text and a name for the new style.");
         return;
       }
 
@@ -1000,28 +945,25 @@ ${sampleText}`;
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(
-            `HTTP ${response.status}: ${
-              errorData.error?.message || response.statusText
-            }`
-          );
+          throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
         }
 
         const result = await response.json();
-        const generatedContent = result.choices?.[0]?.message?.content;
+        let generatedContent;
 
-        if (!generatedContent) {
-          throw new Error(
-            "The API returned an empty analysis. Please try again."
-          );
+        // Handle different response formats
+        if (App.State.currentProvider === "cohere") {
+          generatedContent = result.message?.content;
+        } else {
+          generatedContent = result.choices?.[0]?.message?.content;
         }
 
-        const existingIndex = S.writingStyles.findIndex(
-          (s) => s.name === newName
-        );
-        const isDefault = App.Constants.DEFAULT_STYLES.some(
-          (s) => s.name === newName
-        );
+        if (!generatedContent) {
+          throw new Error("The API returned an empty analysis. Please try again.");
+        }
+
+        const existingIndex = S.writingStyles.findIndex((s) => s.name === newName);
+        const isDefault = App.Constants.DEFAULT_STYLES.some((s) => s.name === newName);
 
         if (existingIndex !== -1 && isDefault) {
           alert("You cannot overwrite a default style.");
@@ -1080,10 +1022,7 @@ ${sampleText}`;
     },
 
     updateToggleUI: function () {
-      App.Elements.darkModeToggleInput?.classList.toggle(
-        "active",
-        App.State.darkMode
-      );
+      App.Elements.darkModeToggleInput?.classList.toggle("active", App.State.darkMode);
     },
   },
 
@@ -1091,17 +1030,17 @@ ${sampleText}`;
     open: function () {
       const S = App.State;
       const E = App.Elements;
-
+      
       // Populate provider select
       E.providerSelect.innerHTML = "";
-      Object.keys(S.providers).forEach((providerId) => {
+      Object.keys(S.providers).forEach(providerId => {
         const provider = S.providers[providerId];
         const option = document.createElement("option");
         option.value = providerId;
         option.textContent = provider.name;
         E.providerSelect.appendChild(option);
       });
-
+      
       E.userSystemPromptInput.value = S.userSystemPrompt;
       App.UI.updateAutoScrollToggleUI();
       App.DarkMode.updateToggleUI();
@@ -1117,12 +1056,12 @@ ${sampleText}`;
     save: function () {
       const S = App.State;
       const E = App.Elements;
-
+      
       // Save current provider's API key
       const currentProvider = App.Provider.getCurrentProvider();
       const apiKey = E.apiKeyInput.value.trim();
       App.Provider.saveApiKey(S.currentProvider, apiKey);
-
+      
       S.userSystemPrompt = E.userSystemPromptInput.value.trim();
 
       localStorage.setItem("openrouter_user_system_prompt", S.userSystemPrompt);
@@ -1156,6 +1095,9 @@ ${sampleText}`;
     },
 
     toggleFreeOnly: function () {
+      // Only applies to OpenRouter
+      if (App.State.currentProvider !== "openrouter") return;
+      
       App.State.freeOnly = !App.State.freeOnly;
       App.UI.updateFreeOnlyToggleUI();
       App.UI.populateCustomModelSelect();
@@ -1185,20 +1127,25 @@ ${sampleText}`;
 
       try {
         const data = await App.API.fetchModels();
-        S.models = data.data || [];
+        
+        // Handle different response formats
+        if (S.currentProvider === "cohere") {
+          S.models = data.models || [];
+        } else if (S.currentProvider === "huggingface") {
+          S.models = data.data || currentProvider.predefinedModels || [];
+        } else {
+          S.models = data.data || [];
+        }
+        
         UI.populateCustomModelSelect();
       } catch (error) {
         console.error("Error fetching models:", error);
         UI.setStatus(`Error: ${error.message}`);
-        alert(
-          `Failed to fetch ${currentProvider.name} models. Please check your API key.`
-        );
+        alert(`Failed to fetch ${currentProvider.name} models. Please check your API key.`);
         E.customModelSelectDisplayText.textContent = "Error";
-        E.customModelList.innerHTML =
-          '<li class="no-models">Error loading models.</li>';
+        E.customModelList.innerHTML = '<li class="no-models">Error loading models.</li>';
         if (E.mobileModelList) {
-          E.mobileModelList.innerHTML =
-            '<li class="no-models">Error loading models.</li>';
+          E.mobileModelList.innerHTML = '<li class="no-models">Error loading models.</li>';
         }
       } finally {
         E.refreshBtn.disabled = false;
@@ -1246,9 +1193,7 @@ ${sampleText}`;
       let assistantContent = "";
       S.currentThinkingDiv = null;
 
-      const selectedStyle = S.writingStyles.find(
-        (s) => s.name === S.selectedStyleName
-      );
+      const selectedStyle = S.writingStyles.find((s) => s.name === S.selectedStyleName);
       const styleContent = selectedStyle ? selectedStyle.content : "";
 
       let customPromptPart = "";
@@ -1256,9 +1201,7 @@ ${sampleText}`;
       const overrideCmdLower = S.OVERRIDE_COMMAND.toLowerCase();
 
       if (userPromptLower.startsWith(overrideCmdLower)) {
-        customPromptPart = S.userSystemPrompt
-          .substring(S.OVERRIDE_COMMAND.length)
-          .trim();
+        customPromptPart = S.userSystemPrompt.substring(S.OVERRIDE_COMMAND.length).trim();
       } else {
         customPromptPart = S.DEFAULT_SYSTEM_PROMPT;
         if (S.userSystemPrompt) {
@@ -1297,8 +1240,7 @@ ${sampleText}`;
           messages: messagesPayload,
           stream: true,
         });
-        if (!response.ok)
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         UI.hideLoadingMessage();
         UI.setStatus("Receiving response...", true);
@@ -1318,23 +1260,31 @@ ${sampleText}`;
               if (data === "[DONE]") continue;
               try {
                 const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta;
+                let delta, content;
 
-                if (delta?.thinking) {
-                  if (!S.currentThinkingDiv) UI.addThinkingBlock();
-                  UI.updateThinkingContent(delta.thinking);
+                // Handle different provider response formats
+                if (S.currentProvider === "cohere") {
+                  // Cohere streaming format
+                  content = parsed.delta?.message?.content;
+                } else {
+                  // OpenAI-compatible format (OpenRouter, SiliconFlow, Hugging Face)
+                  delta = parsed.choices?.[0]?.delta;
+                  content = delta?.content;
+
+                  if (delta?.thinking) {
+                    if (!S.currentThinkingDiv) UI.addThinkingBlock();
+                    UI.updateThinkingContent(delta.thinking);
+                  }
                 }
-                if (delta?.content) {
+
+                if (content) {
                   if (!assistantMessageDiv) {
                     assistantMessageDiv = UI.addMessage("", "assistant");
                   }
-                  assistantContent += delta.content;
+                  assistantContent += content;
                   assistantMessageDiv.dataset.rawContent = assistantContent;
-                  assistantMessageDiv.querySelector(
-                    ".message-text-content"
-                  ).innerHTML = marked.parse(assistantContent);
-                  if (S.autoScrollEnabled)
-                    E.messages.scrollTop = E.messages.scrollHeight;
+                  assistantMessageDiv.querySelector(".message-text-content").innerHTML = marked.parse(assistantContent);
+                  if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
                 }
               } catch (e) {
                 // Silent fail for parsing errors
@@ -1351,8 +1301,7 @@ ${sampleText}`;
         else {
           assistantContent += `\n\n**${errorMsg}**`;
           assistantMessageDiv.dataset.rawContent = assistantContent;
-          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
-            marked.parse(assistantContent);
+          assistantMessageDiv.querySelector(".message-text-content").innerHTML = marked.parse(assistantContent);
         }
         UI.setStatus(errorMsg);
       } finally {

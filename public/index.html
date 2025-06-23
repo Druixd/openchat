@@ -188,71 +188,72 @@
   </div>
 
   <!-- Configuration Modal -->
-<div class="modal-overlay" id="configModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title">Configuration</h2>
-      <button class="close-btn" id="closeConfigBtn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-        </svg>
-      </button>
-    </div>
-
-    <div class="modal-content">
-      <!-- ADD PROVIDER SELECTION -->
-      <div class="form-section">
-        <label class="form-label" for="providerSelect">AI Provider</label>
-        <select id="providerSelect" class="form-select">
-          <option value="openrouter">OpenRouter</option>
-          <option value="siliconflow">SiliconFlow</option>
-        </select>
+  <div class="modal-overlay" id="configModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Configuration</h2>
+        <button class="close-btn" id="closeConfigBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
+        </button>
       </div>
 
-      <div class="form-section">
-        <label class="form-label" for="apiKeyInput">API Key</label>
-        <input type="password" class="form-input" id="apiKeyInput" placeholder="Enter your API key">
-      </div>
-
-      <div class="form-section">
-        <label class="form-label" for="userSystemPromptInput">Custom System Prompt</label>
-        <textarea class="form-textarea" id="userSystemPromptInput"
-          placeholder="Add custom instructions or use @override to replace default"></textarea>
-      </div>
-
-      <div class="form-section">
-        <label class="form-label" for="writingStyleSelect">Writing Style</label>
-        <select id="writingStyleSelect" class="form-select"></select>
-        <textarea id="writingStyleContent" class="form-textarea"
-          placeholder="Style content will appear here"></textarea>
-
-        <div class="style-actions">
-          <button id="openAnalyzeModalBtn" class="header-btn analyze-btn">CREATE NEW STYLE FROM TEXT</button>
+      <div class="modal-content">
+        <!-- AI PROVIDER SELECTION -->
+        <div class="form-section">
+          <label class="form-label" for="providerSelect">AI Provider</label>
+          <select id="providerSelect" class="form-select">
+            <option value="openrouter">OpenRouter</option>
+            <option value="siliconflow">SiliconFlow</option>
+            <option value="huggingface">Hugging Face</option>
+            <option value="cohere">Cohere</option>
+          </select>
         </div>
-      </div>
 
-      <div class="form-section form-row">
-        <label class="form-label">Auto-scroll after response</label>
-        <button class="toggle-btn active" id="autoScrollToggleInput">
-          <div class="toggle-slider"></div>
-        </button>
-      </div>
+        <div class="form-section">
+          <label class="form-label" for="apiKeyInput">API Key</label>
+          <input type="password" class="form-input" id="apiKeyInput" placeholder="Enter your API key">
+        </div>
 
-      <div class="form-section form-row">
-        <label class="form-label">Dark Mode</label>
-        <button class="toggle-btn" id="darkModeToggleInput">
-          <div class="toggle-slider"></div>
-        </button>
-      </div>
+        <div class="form-section">
+          <label class="form-label" for="userSystemPromptInput">Custom System Prompt</label>
+          <textarea class="form-textarea" id="userSystemPromptInput"
+            placeholder="Add custom instructions or use @override to replace default"></textarea>
+        </div>
 
-      <div class="modal-footer">
-        <button class="header-btn primary large" id="saveConfigBtn">SAVE CONFIGURATION</button>
+        <div class="form-section">
+          <label class="form-label" for="writingStyleSelect">Writing Style</label>
+          <select id="writingStyleSelect" class="form-select"></select>
+          <textarea id="writingStyleContent" class="form-textarea"
+            placeholder="Style content will appear here"></textarea>
+
+          <div class="style-actions">
+            <button id="openAnalyzeModalBtn" class="header-btn analyze-btn">CREATE NEW STYLE FROM TEXT</button>
+          </div>
+        </div>
+
+        <div class="form-section form-row">
+          <label class="form-label">Auto-scroll after response</label>
+          <button class="toggle-btn active" id="autoScrollToggleInput">
+            <div class="toggle-slider"></div>
+          </button>
+        </div>
+
+        <div class="form-section form-row">
+          <label class="form-label">Dark Mode</label>
+          <button class="toggle-btn" id="darkModeToggleInput">
+            <div class="toggle-slider"></div>
+          </button>
+        </div>
+
+        <div class="modal-footer">
+          <button class="header-btn primary large" id="saveConfigBtn">SAVE CONFIGURATION</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
   <!-- Style Analysis Modal -->
   <div class="modal-overlay" id="analyzeStyleModal">
     <div class="modal">
