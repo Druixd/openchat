@@ -21,6 +21,25 @@ const App = {
         modelsEndpoint: "/models",
         authHeader: "Bearer",
       },
+      googleaistudio: {
+        name: "Google AI Studio",
+        apiKey: localStorage.getItem("googleaistudio_api_key") || "",
+        baseUrl: "https://generativelanguage.googleapis.com",
+        headers: {},
+        chatEndpoint: "/v1beta/models", // Base endpoint, we'll append model and action
+        modelsEndpoint: "/v1beta/models",
+        authHeader: "", // Google uses API key in URL
+        useGeminiFormat: true,
+        predefinedModels: [
+          { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash Lite" },
+          {
+            id: "gemini-2.5-flash-lite-preview-06-17",
+            name: "Gemini 2.5 Flash Lite",
+          },
+          { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+          { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+        ],
+      },
       siliconflow: {
         name: "SiliconFlow",
         apiKey: localStorage.getItem("siliconflow_api_key") || "",
@@ -459,6 +478,12 @@ const App = {
     populateCustomModelSelect: function () {
       const S = App.State;
       const E = App.Elements;
+
+      if (!E.customModelList || !E.mobileModelList) {
+        console.error("Model list elements not found");
+        return;
+      }
+
       E.customModelList.innerHTML = "";
       E.mobileModelList.innerHTML = "";
       const currentProvider = App.Provider.getCurrentProvider();
@@ -467,10 +492,11 @@ const App = {
       let currentDisplayText = placeholderText;
       let foundSelectedInNewList = false;
 
-      // For Hugging Face, use predefined models if no API models available
+      // For providers with predefined models, use them if no API models available
       let modelsToDisplay = S.models;
       if (
-        S.currentProvider === "huggingface" &&
+        (S.currentProvider === "huggingface" ||
+          S.currentProvider === "googleaistudio") &&
         S.models.length === 0 &&
         currentProvider.predefinedModels
       ) {
@@ -529,6 +555,7 @@ const App = {
           foundSelectedInNewList = true;
         }
       });
+
       const providerId = App.State.currentProvider;
       const lastSelectedModel = localStorage.getItem(`lastModel_${providerId}`);
       if (
@@ -536,12 +563,14 @@ const App = {
         modelsToDisplay.some((m) => m.id === lastSelectedModel)
       ) {
         E.modelSelect.value = lastSelectedModel;
-        E.customModelSelectDisplayText.textContent =
-          modelsToDisplay.find((m) => m.id === lastSelectedModel).id +
-          " - " +
-          (modelsToDisplay.find((m) => m.id === lastSelectedModel).name ||
-            "Unknown");
-        // Update UI for selected option if needed
+        const selectedModel = modelsToDisplay.find(
+          (m) => m.id === lastSelectedModel
+        );
+        if (selectedModel) {
+          E.customModelSelectDisplayText.textContent = `${selectedModel.id} - ${
+            selectedModel.name || "Unknown"
+          }`;
+        }
       } else {
         E.modelSelect.value = "";
         E.customModelSelectDisplayText.textContent = placeholderText;
@@ -842,9 +871,16 @@ const App = {
       }
     },
 
+    // Update the UI.addMessage function to be more defensive:
     addMessage: function (rawContent, role) {
       const E = App.Elements;
       const S = App.State;
+
+      if (!E.messages) {
+        console.error("Messages container not found");
+        return null;
+      }
+
       const messageDiv = document.createElement("div");
       messageDiv.className = `message ${role}`;
       messageDiv.dataset.rawContent = rawContent;
@@ -854,7 +890,7 @@ const App = {
       messageTextContentDiv.className = "message-text-content";
 
       if (role === "assistant") {
-        messageTextContentDiv.innerHTML = marked.parse(rawContent); // This will now include the blockquote
+        messageTextContentDiv.innerHTML = marked.parse(rawContent);
       } else {
         messageTextContentDiv.textContent = rawContent;
       }
@@ -881,9 +917,11 @@ const App = {
       messageDiv.appendChild(actionsDiv);
 
       E.messages.appendChild(messageDiv);
+
       if (S.autoScrollEnabled || role === "user") {
         E.messages.scrollTop = E.messages.scrollHeight;
       }
+
       return messageDiv;
     },
 
@@ -925,7 +963,10 @@ const App = {
       if (App.State.currentProvider === "huggingface") {
         return { data: provider.predefinedModels || [] };
       }
-
+      // Google AI Studio - use predefined models for now since the API has complex model listing
+      if (App.State.currentProvider === "googleaistudio") {
+        return { data: provider.predefinedModels || [] };
+      }
       // Cohere uses different endpoint for models
       const endpoint = provider.modelsEndpoint || "/models";
 
@@ -946,20 +987,51 @@ const App = {
 
       let requestPayload = payload;
       let endpoint = provider.chatEndpoint;
+      let url;
+
+      // Handle Google AI Studio's different format
+      if (provider.useGeminiFormat) {
+        requestPayload = App.API.convertToGemini(payload);
+        const modelId = payload.model;
+
+        if (!modelId) {
+          throw new Error("No model selected for Google AI Studio");
+        }
+
+        // Google AI Studio doesn't really stream tokens, so use non-streaming endpoint
+        const action = "generateContent";
+        url = `${provider.baseUrl}/v1beta/models/${modelId}:${action}?key=${provider.apiKey}`;
+
+        return await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...provider.headers,
+          },
+          body: JSON.stringify(requestPayload),
+        });
+      }
 
       // Handle Cohere's different format
       if (provider.useV2Format) {
-        // Convert OpenAI format to Cohere format
         requestPayload = App.API.convertToCohere(payload);
       }
 
-      return await fetch(`${provider.baseUrl}${endpoint}`, {
+      // Standard OpenAI-compatible format
+      const headers = {
+        "Content-Type": "application/json",
+        ...provider.headers,
+      };
+
+      if (provider.authHeader) {
+        headers.Authorization = `${provider.authHeader} ${provider.apiKey}`;
+      }
+
+      url = `${provider.baseUrl}${endpoint}`;
+
+      return await fetch(url, {
         method: "POST",
-        headers: {
-          Authorization: `${provider.authHeader} ${provider.apiKey}`,
-          "Content-Type": "application/json",
-          ...provider.headers,
-        },
+        headers: headers,
         body: JSON.stringify(requestPayload),
       });
     },
@@ -985,6 +1057,47 @@ const App = {
       if (openAIPayload.stop) coherePayload.stop_sequences = openAIPayload.stop;
 
       return coherePayload;
+    },
+    convertToGemini: function (openAIPayload) {
+      // Convert OpenAI format to Gemini format
+      const contents = [];
+      let systemPrompt = "";
+
+      openAIPayload.messages.forEach((message) => {
+        if (message.role === "system") {
+          systemPrompt = message.content;
+          return;
+        }
+
+        contents.push({
+          role: message.role === "assistant" ? "model" : "user",
+          parts: [{ text: message.content }],
+        });
+      });
+
+      // Prepend system message to first user message if exists
+      if (systemPrompt && contents.length > 0 && contents[0].role === "user") {
+        contents[0].parts[0].text = `${systemPrompt}\n\n${contents[0].parts[0].text}`;
+      }
+
+      const geminiPayload = {
+        contents: contents,
+        generationConfig: {
+          temperature: openAIPayload.temperature || 0.7,
+          maxOutputTokens: openAIPayload.max_tokens || 2048,
+          topP: openAIPayload.top_p || 0.8,
+        },
+      };
+
+      if (openAIPayload.stop) {
+        geminiPayload.generationConfig.stopSequences = Array.isArray(
+          openAIPayload.stop
+        )
+          ? openAIPayload.stop
+          : [openAIPayload.stop];
+      }
+
+      return geminiPayload;
     },
   },
 
@@ -1463,7 +1576,7 @@ ${sampleText}`;
         const response = await App.API.fetchChatCompletion({
           model: selectedModel,
           messages: messagesPayload,
-          stream: true,
+          stream: S.currentProvider !== "googleaistudio", // Don't stream for Google AI Studio
         });
         if (!response.ok)
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1471,67 +1584,111 @@ ${sampleText}`;
         UI.hideLoadingMessage();
         UI.setStatus("Receiving response...", true);
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // Handle Google AI Studio (non-streaming)
+        if (S.currentProvider === "googleaistudio") {
+          const result = await response.json();
+          const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
+          if (content) {
+            assistantMessageDiv = UI.addMessage(content, "assistant");
+          } else {
+            throw new Error("No content found in Google AI Studio response");
+          }
+        } else {
+          // Handle streaming for other providers
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
 
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(data);
-                let delta, content;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n");
 
-                if (S.currentProvider === "cohere") {
-                  content = parsed.delta?.message?.content;
-                } else {
-                  delta = parsed.choices?.[0]?.delta;
-                  content = delta?.content;
-                  if (delta?.thinking) {
-                    thinkingContent += delta.thinking + " "; // Accumulate thinking content
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  let delta, content;
+
+                  if (S.currentProvider === "cohere") {
+                    content = parsed.delta?.message?.content;
+                  } else {
+                    delta = parsed.choices?.[0]?.delta;
+                    content = delta?.content;
+                    if (delta?.thinking) {
+                      thinkingContent += delta.thinking + " ";
+                    }
                   }
-                }
 
-                if (content) {
-                  if (!assistantMessageDiv) {
-                    assistantMessageDiv = UI.addMessage("", "assistant"); // Create message div
+                  if (content) {
+                    if (!assistantMessageDiv) {
+                      assistantMessageDiv = UI.addMessage("", "assistant");
+                    }
+                    assistantContent += content;
+                    assistantMessageDiv.dataset.rawContent = assistantContent;
+
+                    // Update content for real-time streaming
+                    const messageTextContent =
+                      assistantMessageDiv.querySelector(
+                        ".message-text-content"
+                      );
+                    if (messageTextContent) {
+                      messageTextContent.innerHTML =
+                        marked.parse(assistantContent);
+                    }
+
+                    // Auto-scroll if enabled
+                    if (S.autoScrollEnabled) {
+                      E.messages.scrollTop = E.messages.scrollHeight;
+                    }
                   }
-                  assistantContent += content;
-                  assistantMessageDiv.dataset.rawContent = assistantContent; // Update main content
-                  // For now, we'll handle full rendering after the loop
+                } catch (e) {
+                  // Silent fail for parsing errors
                 }
-              } catch (e) {
-                // Silent fail for parsing errors
+              }
+            }
+          }
+
+          // Final content rendering for streaming providers
+          if (assistantMessageDiv) {
+            const messageTextContent = assistantMessageDiv.querySelector(
+              ".message-text-content"
+            );
+            if (messageTextContent) {
+              if (thinkingContent) {
+                const fullContent = `<blockquote class="thinking-quote">${thinkingContent.trim()}</blockquote>${assistantContent}`;
+                messageTextContent.innerHTML = marked.parse(fullContent);
+                assistantMessageDiv.dataset.rawContent = fullContent;
+              } else {
+                messageTextContent.innerHTML = marked.parse(assistantContent);
+                assistantMessageDiv.dataset.rawContent = assistantContent;
               }
             }
           }
         }
-        if (thinkingContent) {
-          const fullContent = `<blockquote class="thinking-quote">${thinkingContent.trim()}</blockquote>${assistantContent}`;
-          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
-            marked.parse(fullContent);
-          assistantMessageDiv.dataset.rawContent = fullContent; // Update for copying
-        } else {
-          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
-            marked.parse(assistantContent);
-        }
+
         UI.setStatus("Response complete");
       } catch (error) {
         console.error("Error in sendMessage:", error);
         UI.hideLoadingMessage();
         const errorMsg = `Error: ${error.message}`;
-        if (!assistantMessageDiv) UI.addMessage(errorMsg, "assistant");
-        else {
-          assistantContent += `\n\n**${errorMsg}**`;
-          assistantMessageDiv.dataset.rawContent = assistantContent;
-          assistantMessageDiv.querySelector(".message-text-content").innerHTML =
-            marked.parse(assistantContent);
+
+        if (!assistantMessageDiv) {
+          UI.addMessage(errorMsg, "assistant");
+        } else {
+          const currentContent = assistantMessageDiv.dataset.rawContent || "";
+          const updatedContent = currentContent + `\n\n**${errorMsg}**`;
+          assistantMessageDiv.dataset.rawContent = updatedContent;
+
+          const messageTextContent = assistantMessageDiv.querySelector(
+            ".message-text-content"
+          );
+          if (messageTextContent) {
+            messageTextContent.innerHTML = marked.parse(updatedContent);
+          }
         }
         UI.setStatus(errorMsg);
       } finally {
@@ -1541,7 +1698,9 @@ ${sampleText}`;
         E.sendBtnText.classList.remove("hidden");
         E.sendBtnLoading.classList.add("hidden");
         S.currentThinkingDiv = null;
-        if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
+        if (S.autoScrollEnabled && E.messages) {
+          E.messages.scrollTop = E.messages.scrollHeight;
+        }
         E.messageInput.focus();
         UI.updateRateLimitStatus();
       }
