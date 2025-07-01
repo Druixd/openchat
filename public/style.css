@@ -134,8 +134,10 @@ body::before {
   padding: 0 var(--space-md);
   flex-shrink: 0;
   gap: var(--space-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-
 
 .header-left {
   display: flex;
@@ -579,6 +581,7 @@ body::before {
 }
 
 .message.assistant {
+  
   margin-right: 60px;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -609,6 +612,13 @@ body::before {
 .message-text-content {
   font-weight: var(--font-weight-normal);
   line-height: 1.6;
+
+}
+
+.message-text-content.assistant {
+  padding: var(--space-md);
+  border-radius: var(--border-radius, 8px);
+  margin: var(--space-xs) 0;
 }
 
 .message-actions {
@@ -1021,9 +1031,11 @@ body::before {
   
   .message.user {
     margin-left: var(--space-md);
+    margin-right: var(--space-md);
   }
   
   .message.assistant {
+    margin-left: var(--space-md);
     margin-right: var(--space-md);
   }
   

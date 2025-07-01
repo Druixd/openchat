@@ -488,11 +488,6 @@ const App = {
       E.mobileModelList.innerHTML = "";
       const currentProvider = App.Provider.getCurrentProvider();
       const placeholderText = `Select a ${currentProvider.name} model...`;
-      let currentSelectedNativeValue = E.modelSelect.value;
-      let currentDisplayText = placeholderText;
-      let foundSelectedInNewList = false;
-
-      // For providers with predefined models, use them if no API models available
       let modelsToDisplay = S.models;
       if (
         (S.currentProvider === "huggingface" ||
@@ -502,16 +497,12 @@ const App = {
       ) {
         modelsToDisplay = currentProvider.predefinedModels;
       }
-
-      // Apply free filter only for OpenRouter
       if (S.freeOnly && S.currentProvider === "openrouter") {
         modelsToDisplay = modelsToDisplay.filter((model) =>
           model.id.includes(":free")
         );
       }
-
       E.modelSelect.innerHTML = `<option value="">${placeholderText}</option>`;
-
       if (modelsToDisplay.length === 0) {
         const noModelsText = currentProvider.apiKey
           ? "No models available."
@@ -526,62 +517,53 @@ const App = {
         App.UI.filterMobileModelOptions();
         return;
       }
-
       modelsToDisplay.forEach((model) => {
         const displayText = `${model.id} - ${model.name || "Unknown"}`;
-
         // Desktop dropdown
         const li = document.createElement("li");
         li.textContent = displayText;
         li.dataset.value = model.id;
         E.customModelList.appendChild(li);
-
         // Mobile dropdown
         const mobileLi = document.createElement("li");
         mobileLi.textContent = displayText;
         mobileLi.dataset.value = model.id;
         E.mobileModelList.appendChild(mobileLi);
-
+        // Native select
         const option = document.createElement("option");
         option.value = model.id;
         option.textContent = displayText;
         E.modelSelect.appendChild(option);
-
-        if (model.id === currentSelectedNativeValue) {
-          currentDisplayText = displayText;
-          li.classList.add("selected-option");
-          mobileLi.classList.add("selected-option");
-          E.modelSelect.value = currentSelectedNativeValue;
-          foundSelectedInNewList = true;
-        }
       });
-
+      // Always prioritize last selected model from localStorage
       const providerId = App.State.currentProvider;
       const lastSelectedModel = localStorage.getItem(`lastModel_${providerId}`);
+      let selectedModel = null;
       if (
         lastSelectedModel &&
         modelsToDisplay.some((m) => m.id === lastSelectedModel)
       ) {
         E.modelSelect.value = lastSelectedModel;
-        const selectedModel = modelsToDisplay.find(
-          (m) => m.id === lastSelectedModel
-        );
-        if (selectedModel) {
-          E.customModelSelectDisplayText.textContent = `${selectedModel.id} - ${
-            selectedModel.name || "Unknown"
-          }`;
-        }
+        selectedModel = modelsToDisplay.find((m) => m.id === lastSelectedModel);
       } else {
         E.modelSelect.value = "";
-        E.customModelSelectDisplayText.textContent = placeholderText;
       }
-
-      if (!foundSelectedInNewList) {
-        E.modelSelect.value = "";
-        currentDisplayText = placeholderText;
+      // Set display text and highlight selected option
+      let displayText = placeholderText;
+      if (selectedModel) {
+        displayText = `${selectedModel.id} - ${selectedModel.name || "Unknown"}`;
+        // Highlight in customModelList
+        const li = Array.from(E.customModelList.children).find(
+          (el) => el.dataset.value === selectedModel.id
+        );
+        if (li) li.classList.add("selected-option");
+        // Highlight in mobileModelList
+        const mobileLi = Array.from(E.mobileModelList.children).find(
+          (el) => el.dataset.value === selectedModel.id
+        );
+        if (mobileLi) mobileLi.classList.add("selected-option");
       }
-      E.customModelSelectDisplayText.textContent = currentDisplayText;
-
+      E.customModelSelectDisplayText.textContent = displayText;
       App.UI.filterCustomModelOptions();
       App.UI.filterMobileModelOptions();
       App.UI.setStatus(
@@ -887,7 +869,7 @@ const App = {
       messageDiv.dataset.role = role;
 
       const messageTextContentDiv = document.createElement("div");
-      messageTextContentDiv.className = "message-text-content";
+      messageTextContentDiv.className = "message-text-content" + (role === "assistant" ? " assistant" : "");
 
       if (role === "assistant") {
         messageTextContentDiv.innerHTML = marked.parse(rawContent);
@@ -1399,6 +1381,17 @@ ${sampleText}`;
         App.Elements.customModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
         if (App.Elements.mobileModelList) {
           App.Elements.mobileModelList.innerHTML = `<li class="no-models">Set ${currentProvider.name} API Key to load models.</li>`;
+        }
+      }
+      // Load last used model for current provider
+      const providerId = App.State.currentProvider;
+      const lastSelectedModel = localStorage.getItem(`lastModel_${providerId}`);
+      if (lastSelectedModel && App.Elements.modelSelect) {
+        App.Elements.modelSelect.value = lastSelectedModel;
+        // Optionally update the display text if needed
+        const selectedOption = App.Elements.modelSelect.querySelector(`option[value='${lastSelectedModel}']`);
+        if (selectedOption && App.Elements.customModelSelectDisplayText) {
+          App.Elements.customModelSelectDisplayText.textContent = `${selectedOption.value} - ${selectedOption.textContent}`;
         }
       }
     },
