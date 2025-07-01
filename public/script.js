@@ -117,6 +117,18 @@ const App = {
     selectedStyleName:
       localStorage.getItem("openrouter_selected_style") || "Default",
     mobileModelSectionOpen: false,
+    pdfText: null,
+    pdfFileName: null,
+    rateLimits: {
+      openrouter: { daily: 50 },
+      googleaistudio: { daily: 2000 }, // Google: 60/min, 60k/month, so ~2000/day for user clarity
+    },
+    usage: {
+      openrouter: {},
+      googleaistudio: {},
+    },
+    reasoningEnabled: false,
+    maxTokens: 2048,
   },
 
   Elements: {
@@ -170,6 +182,7 @@ const App = {
     mobileModelSearchInput: null,
     mobileModelList: null,
     darkModeToggleInput: null,
+    pdfUpload: null,
   },
 
   Constants: {
@@ -934,6 +947,15 @@ const App = {
           alert("Failed to copy text.");
         });
     },
+
+    renderFoldableQuote: function (content) {
+      const id = 'fold-' + Math.random().toString(36).slice(2, 10);
+      return `<div class="foldable-quote" id="${id}">
+        <button class="fold-toggle" onclick="document.getElementById('${id}').classList.toggle('open')">[+]</button>
+        <div class="foldable-quote-content">${content}</div>
+        <span style="font-size:12px;color:var(--color-purple);">(Click to expand/collapse)</span>
+      </div>`;
+    },
   },
 
   API: {
@@ -1394,6 +1416,9 @@ ${sampleText}`;
           App.Elements.customModelSelectDisplayText.textContent = `${selectedOption.value} - ${selectedOption.textContent}`;
         }
       }
+      App.MainLogic.initPDFUpload();
+      App.MainLogic.initReasoningToggle();
+      App.UI.updateRateLimitStatus();
     },
 
     toggleFreeOnly: function () {
@@ -1467,31 +1492,11 @@ ${sampleText}`;
 
       UI.updateRateLimitStatus();
 
-      if (currentProvider.id === "openrouter") {
-        // Assuming you add an 'id' property or use the key
-        const today = new Date().toDateString(); // e.g., "Mon Jun 24 2025"
-        if (S.openrouterFirstMessageDate !== today) {
-          // New day, reset count
-          S.openrouterDailyMessages = 0;
-          S.openrouterFirstMessageDate = today;
-          localStorage.setItem("openrouter_daily_messages", 0);
-          localStorage.setItem("openrouter_first_message_date", today);
-        }
-
-        if (S.openrouterDailyMessages >= 50) {
-          alert(
-            "Daily limit reached for OpenRouter (50 messages). Try again tomorrow."
-          );
-          UI.setStatus("OpenRouter daily limit exceeded.");
-          return;
-        }
-
-        // Increment count after successful send
-        S.openrouterDailyMessages += 1;
-        localStorage.setItem(
-          "openrouter_daily_messages",
-          S.openrouterDailyMessages
-        );
+      // Rate limit check
+      if (!App.MainLogic.checkRateLimit(S.currentProvider)) {
+        alert('Daily rate limit reached for this provider.');
+        UI.setStatus('Daily rate limit exceeded.');
+        return;
       }
 
       const selectedModel = E.modelSelect.value;
@@ -1499,50 +1504,54 @@ ${sampleText}`;
 
       if (!message || !currentProvider.apiKey || S.isGenerating) return;
       if (!selectedModel) {
-        alert("Please select a model from the dropdown.");
+        alert('Please select a model from the dropdown.');
         return;
       }
 
       S.isGenerating = true;
       E.sendBtn.disabled = true;
       E.messageInput.disabled = true;
-      E.sendBtnText.classList.add("hidden");
-      E.sendBtnLoading.classList.remove("hidden");
+      E.sendBtnText.classList.add('hidden');
+      E.sendBtnLoading.classList.remove('hidden');
 
-      UI.addMessage(message, "user");
-      E.messageInput.value = "";
-      E.messageInput.style.height = "auto";
+      // Compose context with PDF if present
+      let context = message;
+      if (S.pdfText) {
+        context = `[PDF: ${S.pdfFileName}]\n${S.pdfText}\n---\n${message}`;
+        App.MainLogic.clearPDFContext();
+        if (E.pdfUpload) E.pdfUpload.value = '';
+      }
 
-      UI.setStatus("Waiting for response...", true);
+      UI.addMessage(message, 'user');
+      E.messageInput.value = '';
+      E.messageInput.style.height = 'auto';
+
+      UI.setStatus('Waiting for response...', true);
       UI.showLoadingMessage();
 
       let assistantMessageDiv = null;
-      let assistantContent = "";
-      let thinkingContent = "";
+      let assistantContent = '';
+      let thinkingContent = '';
 
-      const selectedStyle = S.writingStyles.find(
-        (s) => s.name === S.selectedStyleName
-      );
-      const styleContent = selectedStyle ? selectedStyle.content : "";
+      const selectedStyle = S.writingStyles.find((s) => s.name === S.selectedStyleName);
+      const styleContent = selectedStyle ? selectedStyle.content : '';
 
-      let customPromptPart = "";
+      let customPromptPart = '';
       const userPromptLower = S.userSystemPrompt.toLowerCase();
       const overrideCmdLower = S.OVERRIDE_COMMAND.toLowerCase();
 
       if (userPromptLower.startsWith(overrideCmdLower)) {
-        customPromptPart = S.userSystemPrompt
-          .substring(S.OVERRIDE_COMMAND.length)
-          .trim();
+        customPromptPart = S.userSystemPrompt.substring(S.OVERRIDE_COMMAND.length).trim();
       } else {
         customPromptPart = S.DEFAULT_SYSTEM_PROMPT;
         if (S.userSystemPrompt) {
-          customPromptPart += " " + S.userSystemPrompt;
+          customPromptPart += ' ' + S.userSystemPrompt;
         }
       }
 
       let finalSystemPrompt = styleContent;
       if (styleContent && customPromptPart) {
-        finalSystemPrompt += "\n\n---\n\n" + customPromptPart.trim();
+        finalSystemPrompt += '\n\n---\n\n' + customPromptPart.trim();
       } else if (customPromptPart) {
         finalSystemPrompt = customPromptPart.trim();
       }
@@ -1550,111 +1559,97 @@ ${sampleText}`;
 
       const messagesPayload = [];
       if (finalSystemPrompt) {
-        messagesPayload.push({ role: "system", content: finalSystemPrompt });
+        messagesPayload.push({ role: 'system', content: finalSystemPrompt });
       }
-
-      const allMessageElements = E.messages.querySelectorAll(".message");
-      allMessageElements.forEach((el) => {
-        messagesPayload.push({
-          role: el.classList.contains("user") ? "user" : "assistant",
-          content: el.dataset.rawContent,
-        });
-      });
+      messagesPayload.push({ role: 'user', content: context });
 
       const now = Date.now();
-      S.requestTimestamps.push(now);
+      App.MainLogic.incrementUsage(S.currentProvider);
       UI.updateRateLimitStatus();
 
       try {
-        const response = await App.API.fetchChatCompletion({
-          model: selectedModel,
-          messages: messagesPayload,
-          stream: S.currentProvider !== "googleaistudio", // Don't stream for Google AI Studio
-        });
-        if (!response.ok)
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-        UI.hideLoadingMessage();
-        UI.setStatus("Receiving response...", true);
-
-        // Handle Google AI Studio (non-streaming)
-        if (S.currentProvider === "googleaistudio") {
+        let response;
+        if (S.currentProvider === 'googleaistudio') {
+          // Always use non-streaming for Gemini models for reliability
+          const modelId = selectedModel;
+          const url = `${currentProvider.baseUrl}/v1beta/models/${modelId}:generateContent?key=${currentProvider.apiKey}`;
+          const payload = App.API.convertToGemini({
+            model: modelId,
+            messages: messagesPayload,
+            max_tokens: S.maxTokens,
+            temperature: 0.7,
+          });
+          response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...currentProvider.headers },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          UI.hideLoadingMessage();
+          UI.setStatus('Receiving response...', true);
           const result = await response.json();
           const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
           if (content) {
-            assistantMessageDiv = UI.addMessage(content, "assistant");
+            assistantMessageDiv = UI.addMessage(content, 'assistant');
           } else {
-            throw new Error("No content found in Google AI Studio response");
+            throw new Error('No content found in Google AI Studio response');
           }
         } else {
-          // Handle streaming for other providers
+          // All other providers (OpenRouter, etc.)
+          response = await App.API.fetchChatCompletion({
+            model: selectedModel,
+            messages: messagesPayload,
+            stream: S.currentProvider !== 'googleaistudio',
+            max_tokens: S.maxTokens,
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          UI.hideLoadingMessage();
+          UI.setStatus('Receiving response...', true);
+          // Streaming for OpenRouter and others
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split("\n");
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                if (data === "[DONE]") continue;
-                try {
-                  const parsed = JSON.parse(data);
-                  let delta, content;
-
-                  if (S.currentProvider === "cohere") {
-                    content = parsed.delta?.message?.content;
-                  } else {
+          let done = false;
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            if (value) {
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(data);
+                    let delta, content;
                     delta = parsed.choices?.[0]?.delta;
                     content = delta?.content;
                     if (delta?.thinking) {
-                      thinkingContent += delta.thinking + " ";
+                      thinkingContent += delta.thinking + ' ';
                     }
-                  }
-
-                  if (content) {
-                    if (!assistantMessageDiv) {
-                      assistantMessageDiv = UI.addMessage("", "assistant");
+                    if (content) {
+                      if (!assistantMessageDiv) assistantMessageDiv = UI.addMessage('', 'assistant');
+                      assistantContent += content;
+                      assistantMessageDiv.dataset.rawContent = assistantContent;
+                      const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
+                      if (messageTextContent) {
+                        messageTextContent.innerHTML = marked.parse(assistantContent);
+                      }
+                      if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
                     }
-                    assistantContent += content;
-                    assistantMessageDiv.dataset.rawContent = assistantContent;
-
-                    // Update content for real-time streaming
-                    const messageTextContent =
-                      assistantMessageDiv.querySelector(
-                        ".message-text-content"
-                      );
-                    if (messageTextContent) {
-                      messageTextContent.innerHTML =
-                        marked.parse(assistantContent);
-                    }
-
-                    // Auto-scroll if enabled
-                    if (S.autoScrollEnabled) {
-                      E.messages.scrollTop = E.messages.scrollHeight;
-                    }
-                  }
-                } catch (e) {
-                  // Silent fail for parsing errors
+                  } catch (e) {}
                 }
               }
             }
           }
-
           // Final content rendering for streaming providers
           if (assistantMessageDiv) {
-            const messageTextContent = assistantMessageDiv.querySelector(
-              ".message-text-content"
-            );
+            const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
             if (messageTextContent) {
               if (thinkingContent) {
-                const fullContent = `<blockquote class="thinking-quote">${thinkingContent.trim()}</blockquote>${assistantContent}`;
-                messageTextContent.innerHTML = marked.parse(fullContent);
-                assistantMessageDiv.dataset.rawContent = fullContent;
+                const foldable = UI.renderFoldableQuote(thinkingContent.trim());
+                messageTextContent.innerHTML = foldable + marked.parse(assistantContent);
+                assistantMessageDiv.dataset.rawContent = foldable + assistantContent;
               } else {
                 messageTextContent.innerHTML = marked.parse(assistantContent);
                 assistantMessageDiv.dataset.rawContent = assistantContent;
@@ -1662,23 +1657,18 @@ ${sampleText}`;
             }
           }
         }
-
-        UI.setStatus("Response complete");
+        UI.setStatus('Response complete');
       } catch (error) {
-        console.error("Error in sendMessage:", error);
+        console.error('Error in sendMessage:', error);
         UI.hideLoadingMessage();
         const errorMsg = `Error: ${error.message}`;
-
         if (!assistantMessageDiv) {
-          UI.addMessage(errorMsg, "assistant");
+          UI.addMessage(errorMsg, 'assistant');
         } else {
-          const currentContent = assistantMessageDiv.dataset.rawContent || "";
+          const currentContent = assistantMessageDiv.dataset.rawContent || '';
           const updatedContent = currentContent + `\n\n**${errorMsg}**`;
           assistantMessageDiv.dataset.rawContent = updatedContent;
-
-          const messageTextContent = assistantMessageDiv.querySelector(
-            ".message-text-content"
-          );
+          const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
           if (messageTextContent) {
             messageTextContent.innerHTML = marked.parse(updatedContent);
           }
@@ -1688,8 +1678,8 @@ ${sampleText}`;
         S.isGenerating = false;
         E.sendBtn.disabled = false;
         E.messageInput.disabled = false;
-        E.sendBtnText.classList.remove("hidden");
-        E.sendBtnLoading.classList.add("hidden");
+        E.sendBtnText.classList.remove('hidden');
+        E.sendBtnLoading.classList.add('hidden');
         S.currentThinkingDiv = null;
         if (S.autoScrollEnabled && E.messages) {
           E.messages.scrollTop = E.messages.scrollHeight;
@@ -1703,6 +1693,126 @@ ${sampleText}`;
       if (confirm("Clear all messages?")) {
         App.Elements.messages.innerHTML = "";
         App.UI.setStatus("Chat cleared");
+      }
+    },
+
+    initPDFUpload: function() {
+      const pdfBtn = document.getElementById('pdfUploadBtn');
+      const pdfInput = document.getElementById('pdfUpload');
+      if (pdfBtn && pdfInput) {
+        pdfBtn.onclick = () => {
+          App.MainLogic.ensurePDFJS(() => pdfInput.click());
+        };
+        pdfInput.onchange = (e) => {
+          const file = e.target.files[0];
+          if (file && file.type === 'application/pdf') {
+            App.MainLogic.ensurePDFJS(() => App.MainLogic.handlePDFUpload(file));
+          } else {
+            alert('Please select a PDF file.');
+          }
+        };
+      }
+    },
+
+    handlePDFUpload: async function(file) {
+      if (!window.pdfjsLib) {
+        alert('PDF.js library not loaded yet.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const typedarray = new Uint8Array(e.target.result);
+        const pdf = await window.pdfjsLib.getDocument({data: typedarray}).promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        App.State.pdfText = text;
+        App.State.pdfFileName = file.name;
+        App.UI.setStatus(`PDF "${file.name}" loaded. Will be sent as context with your next message.`);
+      };
+      reader.readAsArrayBuffer(file);
+    },
+
+    clearPDFContext: function() {
+      App.State.pdfText = null;
+      App.State.pdfFileName = null;
+    },
+
+    incrementUsage: function(provider) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (!App.State.usage[provider][today]) App.State.usage[provider][today] = 0;
+      App.State.usage[provider][today]++;
+      localStorage.setItem(`usage_${provider}_${today}`, App.State.usage[provider][today]);
+    },
+
+    getUsage: function(provider) {
+      const today = new Date().toISOString().slice(0, 10);
+      let usage = App.State.usage[provider][today];
+      if (usage == null) {
+        usage = parseInt(localStorage.getItem(`usage_${provider}_${today}`) || '0', 10);
+        App.State.usage[provider][today] = usage;
+      }
+      return usage;
+    },
+
+    checkRateLimit: function(provider) {
+      const limit = App.State.rateLimits[provider]?.daily || 99999;
+      const usage = App.MainLogic.getUsage(provider);
+      return usage < limit;
+    },
+
+    getRateLimitStatus: function(provider) {
+      const limit = App.State.rateLimits[provider]?.daily || 99999;
+      const usage = App.MainLogic.getUsage(provider);
+      return `${usage}/${limit} today`;
+    },
+
+    initReasoningToggle: function() {
+      const toggle = document.getElementById('reasoningToggle');
+      if (toggle) {
+        toggle.checked = App.State.reasoningEnabled;
+        toggle.onchange = (e) => {
+          App.State.reasoningEnabled = !!e.target.checked;
+        };
+      }
+      const effort = document.getElementById('reasoningEffort');
+      if (effort) {
+        effort.value = App.State.maxTokens;
+        effort.onchange = (e) => {
+          let val = parseInt(e.target.value, 10);
+          if (isNaN(val) || val < 256) val = 256;
+          if (val > 8192) val = 8192;
+          App.State.maxTokens = val;
+          e.target.value = val;
+        };
+      }
+    },
+
+    // Improved PDF.js loader
+    ensurePDFJS: function(callback) {
+      if (window.pdfjsLib && window.pdfjsLib.getDocument) {
+        callback();
+        return;
+      }
+      if (!window._pdfjsLoading) {
+        window._pdfjsLoading = true;
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        script.onload = () => {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+          setTimeout(callback, 100); // Give a moment for the lib to be ready
+        };
+        document.head.appendChild(script);
+      } else {
+        // If already loading, poll until ready
+        const check = () => {
+          if (window.pdfjsLib && window.pdfjsLib.getDocument) callback();
+          else setTimeout(check, 100);
+        };
+        check();
       }
     },
   },
