@@ -1,4 +1,4 @@
-const CACHE_NAME = "v0.3.3"; // Increment version if you change cached files
+const CACHE_NAME = "v0.3.4"; // Increment version if you change cached files
 const urlsToCache = [
   "./", // Alias for index.html
   "./index.html",

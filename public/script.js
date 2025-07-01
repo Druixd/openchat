@@ -1561,6 +1561,14 @@ ${sampleText}`;
       if (finalSystemPrompt) {
         messagesPayload.push({ role: 'system', content: finalSystemPrompt });
       }
+      const allMessageElements = E.messages.querySelectorAll('.message');
+      allMessageElements.forEach((el) => {
+        messagesPayload.push({
+          role: el.classList.contains('user') ? 'user' : 'assistant',
+          content: el.dataset.rawContent,
+        });
+      });
+      // Add the new user message at the end
       messagesPayload.push({ role: 'user', content: context });
 
       const now = Date.now();
