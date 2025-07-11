@@ -1136,7 +1136,7 @@ body::before {
   color: var(--text-inverse);
   border: none;
   margin-left: var(--space-xs);
-  border-radius: 6px;
+  /* border-radius: 6px; */
   padding: var(--space-xs) var(--space-sm);
   cursor: pointer;
   transition: background 0.2s;
@@ -1187,4 +1187,135 @@ body::before {
 }
 .foldable-quote.open .foldable-quote-content {
   display: block;
+}
+
+/* Provider Quick Switch Styles */
+.provider-quick-switch-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* margin-right: 12px; */
+}
+
+.provider-quick-switch-btn {
+  height: var(--input-height);
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  border: var(--border-width) solid var(--border-primary);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  font-size: 14px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+.provider-quick-switch-btn:hover {
+  background: var(--color-blue);
+  border: var(--border-width) solid var(--border-primary);
+}
+.provider-quick-switch-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+  filter: none;
+  transition: filter 0.2s;
+}
+
+/* If your logo is white, invert it in light mode only */
+body:not([data-theme="dark"]) .provider-quick-switch-btn img {
+  filter: none;
+}
+
+/* In dark mode, show the logo as-is (white) */
+[data-theme="dark"] .provider-quick-switch-btn img {
+ filter: invert(1) brightness(0.2) contrast(2); 
+}
+/* Remove text from provider switch button */
+.provider-quick-switch-btn span,
+.provider-quick-switch-btn .btn-label {
+  display: none !important;
+}
+.provider-fab-menu {
+  display: none;
+  position: absolute;
+  top: 48px;
+  left: 0;
+  z-index: 100;
+  background: var(--color-bg, #fff);
+  /* border-radius: 16px; */
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 12px 8px;
+  min-width: 220px;
+  flex-direction: row;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+.provider-quick-switch-wrapper.open .provider-fab-menu {
+  display: flex;
+}
+.provider-fab-btn {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.provider-fab-btn:hover, .provider-fab-btn:focus {
+  background: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+}
+@media (max-width: 900px) {
+  .provider-quick-switch-wrapper {
+    display: none !important;
+  }
+}
+
+/* Button: black in light mode, white in dark mode */
+.provider-quick-switch-btn {
+  background: #111; /* black for light mode */
+  color: #fff;
+  border: 1px solid #222;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+}
+[data-theme="dark"] .provider-quick-switch-btn {
+  background: #fff; /* white for dark mode */
+  color: #111;
+  border: 1px solid #eee;
+}
+
+/* Logo: white in light mode, black in dark mode */
+.provider-logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* white in light mode */
+  transition: filter 0.2s;
+}
+[data-theme="dark"] .provider-logo-img {
+  filter: none; /* black in dark mode */
 }

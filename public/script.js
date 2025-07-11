@@ -183,6 +183,10 @@ const App = {
     mobileModelList: null,
     darkModeToggleInput: null,
     pdfUpload: null,
+    providerQuickSwitchWrapper: null,
+    providerQuickSwitchBtn: null,
+    providerFabMenu: null,
+    providerQuickSwitchLogo: null,
   },
 
   Constants: {
@@ -360,12 +364,17 @@ const App = {
       );
       E.mobileModelList = document.getElementById("mobileModelList");
       E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
+      E.providerQuickSwitchWrapper = document.getElementById("providerQuickSwitchWrapper");
+      E.providerQuickSwitchBtn = document.getElementById("providerQuickSwitchBtn");
+      E.providerFabMenu = document.getElementById("providerFabMenu");
+      E.providerQuickSwitchLogo = document.getElementById("providerQuickSwitchLogo");
 
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
       App.UI.updateRateLimitStatus();
       App.DarkMode.init();
       App.Provider.updateUI();
+      App.UI.updateProviderQuickSwitchLogo();
 
       // Auto-update rate limit status every 10 seconds
       setInterval(() => {
@@ -491,6 +500,48 @@ const App = {
           E.configModal.style.display = "none";
         }
       });
+
+      // Provider quick switch event listeners
+      if (E.providerQuickSwitchBtn && E.providerQuickSwitchWrapper) {
+        E.providerQuickSwitchBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          E.providerQuickSwitchWrapper.classList.toggle("open");
+        });
+        // FAB button clicks
+        ["openrouter", "googleaistudio", "siliconflow", "huggingface", "cohere"].forEach((providerId) => {
+          const btn = document.getElementById(`providerFabBtn-${providerId}`);
+          if (btn) {
+            btn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              if (App.State.currentProvider !== providerId) {
+                App.Provider.setCurrentProvider(providerId);
+                // Restore last selected model for this provider
+                const lastModel = localStorage.getItem(`lastModel_${providerId}`);
+                if (lastModel && App.Elements.modelSelect) {
+                  App.Elements.modelSelect.value = lastModel;
+                }
+                App.UI.populateCustomModelSelect();
+              }
+              E.providerQuickSwitchWrapper.classList.remove("open");
+              App.UI.updateProviderQuickSwitchLogo();
+            });
+          }
+        });
+        // Close FAB menu when clicking outside
+        document.addEventListener("click", function (event) {
+          if (
+            E.providerQuickSwitchWrapper.classList.contains("open") &&
+            !E.providerQuickSwitchWrapper.contains(event.target)
+          ) {
+            E.providerQuickSwitchWrapper.classList.remove("open");
+          }
+        });
+      }
+    },
+    
+    updateProviderQuickSwitchLogo: function () {
+      const E = App.Elements;
+      if (!E.providerQuickSwitchLogo) return;
     },
 
     populateCustomModelSelect: function () {
