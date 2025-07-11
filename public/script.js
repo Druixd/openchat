@@ -281,14 +281,17 @@ const App = {
       const newProvider = App.Elements.providerSelect.value;
       App.Provider.setCurrentProvider(newProvider);
 
-      // Clear current models and refresh
+      // Clear current models and UI
       App.State.models = [];
       App.UI.populateCustomModelSelect();
 
-      // Refresh models for new provider
+      // Always fetch models for new provider, then load last used model for that provider
       const provider = App.Provider.getCurrentProvider();
       if (provider.apiKey) {
-        App.MainLogic.refreshModels();
+        // Automatically trigger refresh and selection
+        setTimeout(() => {
+          App.Elements.refreshBtn?.click();
+        }, 0);
       }
     },
   },
