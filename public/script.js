@@ -220,7 +220,7 @@ const App = {
       {
         name: "Alexia Mandeville",
         content:
-          "Adopt an instructive yet conversational tone, blending professional guidance with approachable mentorship. Structure content with clear topical headers followed by concise, actionable advice. Use game design terminology precisely (\"core loop,\" \"vertical slice,\" \"FTUE,\" \"game pillars\") while keeping explanations accessible.\n\n**Key Style Requirements:**\n1. **Tone & Voice:**  \n   - Second-person address (\"you'll,\" \"your players\")  \n   - Confident yet humble expertise (e.g., \"I've learned,\" \"in my experience\")  \n   - Encouraging directives (\"Always ask yourself,\" \"Make sure to\")  \n   - Sparse, purposeful first-person references to establish credibility without dominating  \n\n2. **Sentence Structure:**  \n   - Mix straightforward declarative sentences (\"Designing onboarding is iterative\") with punchy rhetorical questions (\"Why implement features if players don't understand them?\")  \n   - Average sentence length: 15-25 words. Prioritize clarity over complexity.  \n   - Emphasize key concepts through italics or quotation marks (e.g., *\"trim the fat\"*)  \n\n3. **Vocabulary & Register:**  \n   - Industry-specific terms contextualized immediately (e.g., \"prototyping... a playable, polished version\")  \n   - Action verbs (\"craft,\" \"map out,\" \"flesh out\")  \n   - Mild colloquialisms for emphasis (\"under my belt,\" \"rock and roll\") balanced with professional phrasing  \n\n4. **Structural Patterns:**  \n   - Organize content into titled thematic sections ending with targeted reflection questions  \n   - Integrate concrete game examples as anchors for abstract concepts (e.g., \"Sunset Overdrive: 'Rock and roll end times'\")  \n   - Use bullet points sparingly for checklists or multi-part examples  \n\n5. **Flow & Cadence:**  \n   - Transition logically between conceptual framing (\"Develop the Concept\") and practical steps (\"Prototyping & Building\")  \n   - Conclude sections with implementation reminders (\"Start playtesting early\")  \n   - End with an uplifting, concise call to action (\"Have fun!\")  \n\n**Prohibited Styles:** Avoid academic formality, excessive jargon without explanation, passive voice, or detached third-person perspective. Maintain energetic practicality throughout.",
+          'Adopt an instructive yet conversational tone, blending professional guidance with approachable mentorship. Structure content with clear topical headers followed by concise, actionable advice. Use game design terminology precisely ("core loop," "vertical slice," "FTUE," "game pillars") while keeping explanations accessible.\n\n**Key Style Requirements:**\n1. **Tone & Voice:**  \n   - Second-person address ("you\'ll," "your players")  \n   - Confident yet humble expertise (e.g., "I\'ve learned," "in my experience")  \n   - Encouraging directives ("Always ask yourself," "Make sure to")  \n   - Sparse, purposeful first-person references to establish credibility without dominating  \n\n2. **Sentence Structure:**  \n   - Mix straightforward declarative sentences ("Designing onboarding is iterative") with punchy rhetorical questions ("Why implement features if players don\'t understand them?")  \n   - Average sentence length: 15-25 words. Prioritize clarity over complexity.  \n   - Emphasize key concepts through italics or quotation marks (e.g., *"trim the fat"*)  \n\n3. **Vocabulary & Register:**  \n   - Industry-specific terms contextualized immediately (e.g., "prototyping... a playable, polished version")  \n   - Action verbs ("craft," "map out," "flesh out")  \n   - Mild colloquialisms for emphasis ("under my belt," "rock and roll") balanced with professional phrasing  \n\n4. **Structural Patterns:**  \n   - Organize content into titled thematic sections ending with targeted reflection questions  \n   - Integrate concrete game examples as anchors for abstract concepts (e.g., "Sunset Overdrive: \'Rock and roll end times\'")  \n   - Use bullet points sparingly for checklists or multi-part examples  \n\n5. **Flow & Cadence:**  \n   - Transition logically between conceptual framing ("Develop the Concept") and practical steps ("Prototyping & Building")  \n   - Conclude sections with implementation reminders ("Start playtesting early")  \n   - End with an uplifting, concise call to action ("Have fun!")  \n\n**Prohibited Styles:** Avoid academic formality, excessive jargon without explanation, passive voice, or detached third-person perspective. Maintain energetic practicality throughout.',
       },
     ],
   },
@@ -364,10 +364,16 @@ const App = {
       );
       E.mobileModelList = document.getElementById("mobileModelList");
       E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
-      E.providerQuickSwitchWrapper = document.getElementById("providerQuickSwitchWrapper");
-      E.providerQuickSwitchBtn = document.getElementById("providerQuickSwitchBtn");
+      E.providerQuickSwitchWrapper = document.getElementById(
+        "providerQuickSwitchWrapper"
+      );
+      E.providerQuickSwitchBtn = document.getElementById(
+        "providerQuickSwitchBtn"
+      );
       E.providerFabMenu = document.getElementById("providerFabMenu");
-      E.providerQuickSwitchLogo = document.getElementById("providerQuickSwitchLogo");
+      E.providerQuickSwitchLogo = document.getElementById(
+        "providerQuickSwitchLogo"
+      );
 
       App.UI.updateAutoScrollToggleUI();
       App.UI.updateFreeOnlyToggleUI();
@@ -508,7 +514,13 @@ const App = {
           E.providerQuickSwitchWrapper.classList.toggle("open");
         });
         // FAB button clicks
-        ["openrouter", "googleaistudio", "siliconflow", "huggingface", "cohere"].forEach((providerId) => {
+        [
+          "openrouter",
+          "googleaistudio",
+          "siliconflow",
+          "huggingface",
+          "cohere",
+        ].forEach((providerId) => {
           const btn = document.getElementById(`providerFabBtn-${providerId}`);
           if (btn) {
             btn.addEventListener("click", function (e) {
@@ -516,7 +528,9 @@ const App = {
               if (App.State.currentProvider !== providerId) {
                 App.Provider.setCurrentProvider(providerId);
                 // Restore last selected model for this provider
-                const lastModel = localStorage.getItem(`lastModel_${providerId}`);
+                const lastModel = localStorage.getItem(
+                  `lastModel_${providerId}`
+                );
                 if (lastModel && App.Elements.modelSelect) {
                   App.Elements.modelSelect.value = lastModel;
                 }
@@ -538,7 +552,7 @@ const App = {
         });
       }
     },
-    
+
     updateProviderQuickSwitchLogo: function () {
       const E = App.Elements;
       if (!E.providerQuickSwitchLogo) return;
@@ -620,7 +634,9 @@ const App = {
       // Set display text and highlight selected option
       let displayText = placeholderText;
       if (selectedModel) {
-        displayText = `${selectedModel.id} - ${selectedModel.name || "Unknown"}`;
+        displayText = `${selectedModel.id} - ${
+          selectedModel.name || "Unknown"
+        }`;
         // Highlight in customModelList
         const li = Array.from(E.customModelList.children).find(
           (el) => el.dataset.value === selectedModel.id
@@ -923,7 +939,7 @@ const App = {
     },
 
     // Update the UI.addMessage function to be more defensive:
-    addMessage: function (rawContent, role) {
+    addMessage: function (rawContent, role, options = {}) {
       const E = App.Elements;
       const S = App.State;
 
@@ -937,8 +953,25 @@ const App = {
       messageDiv.dataset.rawContent = rawContent;
       messageDiv.dataset.role = role;
 
+      // If this is a user message and options.attachment is set, show attachment tag
+      if (role === "user" && options.attachment) {
+        const attachmentDiv = document.createElement("div");
+        attachmentDiv.className = "message-attachment";
+        attachmentDiv.innerHTML = `
+          <span class="attachment-icon" aria-label="Attachment">
+            <svg width="16px" height="16px" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 6.5V6H2V6.5H2.5ZM6.5 6.5V6H6V6.5H6.5ZM6.5 10.5H6V11H6.5V10.5ZM13.5 3.5H14V3.29289L13.8536 3.14645L13.5 3.5ZM10.5 0.5L10.8536 0.146447L10.7071 0H10.5V0.5ZM2.5 7H3.5V6H2.5V7ZM3 11V8.5H2V11H3ZM3 8.5V6.5H2V8.5H3ZM3.5 8H2.5V9H3.5V8ZM4 7.5C4 7.77614 3.77614 8 3.5 8V9C4.32843 9 5 8.32843 5 7.5H4ZM3.5 7C3.77614 7 4 7.22386 4 7.5H5C5 6.67157 4.32843 6 3.5 6V7ZM6 6.5V10.5H7V6.5H6ZM6.5 11H7.5V10H6.5V11ZM9 9.5V7.5H8V9.5H9ZM7.5 6H6.5V7H7.5V6ZM9 7.5C9 6.67157 8.32843 6 7.5 6V7C7.77614 7 8 7.22386 8 7.5H9ZM7.5 11C8.32843 11 9 10.3284 9 9.5H8C8 9.77614 7.77614 10 7.5 10V11ZM10 6V11H11V6H10ZM10.5 7H13V6H10.5V7ZM10.5 9H12V8H10.5V9ZM2 5V1.5H1V5H2ZM13 3.5V5H14V3.5H13ZM2.5 1H10.5V0H2.5V1ZM10.1464 0.853553L13.1464 3.85355L13.8536 3.14645L10.8536 0.146447L10.1464 0.853553ZM2 1.5C2 1.22386 2.22386 1 2.5 1V0C1.67157 0 1 0.671573 1 1.5H2ZM1 12V13.5H2V12H1ZM2.5 15H12.5V14H2.5V15ZM14 13.5V12H13V13.5H14ZM12.5 15C13.3284 15 14 14.3284 14 13.5H13C13 13.7761 12.7761 14 12.5 14V15ZM1 13.5C1 14.3284 1.67157 15 2.5 15V14C2.22386 14 2 13.7761 2 13.5H1Z" fill="#000000"/>
+</svg>
+
+          </span>
+          <span class="attachment-name">${options.attachment}</span>
+        `;
+        messageDiv.appendChild(attachmentDiv);
+      }
+
       const messageTextContentDiv = document.createElement("div");
-      messageTextContentDiv.className = "message-text-content" + (role === "assistant" ? " assistant" : "");
+      messageTextContentDiv.className =
+        "message-text-content" + (role === "assistant" ? " assistant" : "");
 
       if (role === "assistant") {
         messageTextContentDiv.innerHTML = marked.parse(rawContent);
@@ -1005,7 +1038,7 @@ const App = {
     },
 
     renderFoldableQuote: function (content) {
-      const id = 'fold-' + Math.random().toString(36).slice(2, 10);
+      const id = "fold-" + Math.random().toString(36).slice(2, 10);
       return `<div class="foldable-quote" id="${id}">
         <button class="fold-toggle" onclick="document.getElementById('${id}').classList.toggle('open')">[+]</button>
         <div class="foldable-quote-content">${content}</div>
@@ -1467,7 +1500,9 @@ ${sampleText}`;
       if (lastSelectedModel && App.Elements.modelSelect) {
         App.Elements.modelSelect.value = lastSelectedModel;
         // Optionally update the display text if needed
-        const selectedOption = App.Elements.modelSelect.querySelector(`option[value='${lastSelectedModel}']`);
+        const selectedOption = App.Elements.modelSelect.querySelector(
+          `option[value='${lastSelectedModel}']`
+        );
         if (selectedOption && App.Elements.customModelSelectDisplayText) {
           App.Elements.customModelSelectDisplayText.textContent = `${selectedOption.value} - ${selectedOption.textContent}`;
         }
@@ -1475,6 +1510,39 @@ ${sampleText}`;
       App.MainLogic.initPDFUpload();
       App.MainLogic.initReasoningToggle();
       App.UI.updateRateLimitStatus();
+
+      // PDF Drag-and-Drop functionality
+      const dropZone = App.Elements.messages;
+      if (dropZone) {
+        // Visual feedback class
+        const dragOverClass = "pdf-dragover";
+        dropZone.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add(dragOverClass);
+        });
+        dropZone.addEventListener("dragleave", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove(dragOverClass);
+        });
+        dropZone.addEventListener("drop", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove(dragOverClass);
+          const files = e.dataTransfer.files;
+          if (files && files.length > 0) {
+            const file = files[0];
+            if (file.type === "application/pdf") {
+              App.MainLogic.ensurePDFJS(() =>
+                App.MainLogic.handlePDFUpload(file)
+              );
+            } else {
+              alert("Please drop a PDF file.");
+            }
+          }
+        });
+      }
     },
 
     toggleFreeOnly: function () {
@@ -1550,64 +1618,81 @@ ${sampleText}`;
 
       // Rate limit check
       if (!App.MainLogic.checkRateLimit(S.currentProvider)) {
-        alert('Daily rate limit reached for this provider.');
-        UI.setStatus('Daily rate limit exceeded.');
+        alert("Daily rate limit reached for this provider.");
+        UI.setStatus("Daily rate limit exceeded.");
         return;
       }
 
       const selectedModel = E.modelSelect.value;
       const message = E.messageInput.value.trim();
 
-      if (!message || !currentProvider.apiKey || S.isGenerating) return;
+      if (!message || S.isGenerating) return;
+      if (!currentProvider.apiKey) {
+        App.Config.open();
+        setTimeout(() => {
+          if (E.apiKeyInput) E.apiKeyInput.focus();
+        }, 100);
+        return;
+      }
       if (!selectedModel) {
-        alert('Please select a model from the dropdown.');
+        alert("Please select a model from the dropdown.");
         return;
       }
 
       S.isGenerating = true;
       E.sendBtn.disabled = true;
       E.messageInput.disabled = true;
-      E.sendBtnText.classList.add('hidden');
-      E.sendBtnLoading.classList.remove('hidden');
+      E.sendBtnText.classList.add("hidden");
+      E.sendBtnLoading.classList.remove("hidden");
 
       // Compose context with PDF if present
       let context = message;
+      let pdfAttachment = null;
       if (S.pdfText) {
         context = `[PDF: ${S.pdfFileName}]\n${S.pdfText}\n---\n${message}`;
+        pdfAttachment = S.pdfFileName;
         App.MainLogic.clearPDFContext();
-        if (E.pdfUpload) E.pdfUpload.value = '';
+        if (E.pdfUpload) E.pdfUpload.value = "";
       }
 
-      UI.addMessage(message, 'user');
-      E.messageInput.value = '';
-      E.messageInput.style.height = 'auto';
+      UI.addMessage(
+        message,
+        "user",
+        pdfAttachment ? { attachment: pdfAttachment } : undefined
+      );
+      E.messageInput.value = "";
+      E.messageInput.style.height = "auto";
 
-      UI.setStatus('Waiting for response...', true);
+      UI.setStatus("Waiting for response...", true);
       UI.showLoadingMessage();
 
       let assistantMessageDiv = null;
-      let assistantContent = '';
-      let thinkingContent = '';
+      let assistantContent = "";
+      let thinkingContent = "";
 
-      const selectedStyle = S.writingStyles.find((s) => s.name === S.selectedStyleName);
-      const styleContent = selectedStyle ? selectedStyle.content : '';
+      const selectedStyle = S.writingStyles.find(
+        (s) => s.name === S.selectedStyleName
+      );
+      const styleContent = selectedStyle ? selectedStyle.content : "";
 
-      let customPromptPart = '';
+      let customPromptPart = "";
       const userPromptLower = S.userSystemPrompt.toLowerCase();
       const overrideCmdLower = S.OVERRIDE_COMMAND.toLowerCase();
 
       if (userPromptLower.startsWith(overrideCmdLower)) {
-        customPromptPart = S.userSystemPrompt.substring(S.OVERRIDE_COMMAND.length).trim();
+        customPromptPart = S.userSystemPrompt
+          .substring(S.OVERRIDE_COMMAND.length)
+          .trim();
       } else {
         customPromptPart = S.DEFAULT_SYSTEM_PROMPT;
         if (S.userSystemPrompt) {
-          customPromptPart += ' ' + S.userSystemPrompt;
+          customPromptPart += " " + S.userSystemPrompt;
         }
       }
 
       let finalSystemPrompt = styleContent;
       if (styleContent && customPromptPart) {
-        finalSystemPrompt += '\n\n---\n\n' + customPromptPart.trim();
+        finalSystemPrompt += "\n\n---\n\n" + customPromptPart.trim();
       } else if (customPromptPart) {
         finalSystemPrompt = customPromptPart.trim();
       }
@@ -1615,17 +1700,17 @@ ${sampleText}`;
 
       const messagesPayload = [];
       if (finalSystemPrompt) {
-        messagesPayload.push({ role: 'system', content: finalSystemPrompt });
+        messagesPayload.push({ role: "system", content: finalSystemPrompt });
       }
-      const allMessageElements = E.messages.querySelectorAll('.message');
+      const allMessageElements = E.messages.querySelectorAll(".message");
       allMessageElements.forEach((el) => {
         messagesPayload.push({
-          role: el.classList.contains('user') ? 'user' : 'assistant',
+          role: el.classList.contains("user") ? "user" : "assistant",
           content: el.dataset.rawContent,
         });
       });
       // Add the new user message at the end
-      messagesPayload.push({ role: 'user', content: context });
+      messagesPayload.push({ role: "user", content: context });
 
       const now = Date.now();
       App.MainLogic.incrementUsage(S.currentProvider);
@@ -1633,7 +1718,7 @@ ${sampleText}`;
 
       try {
         let response;
-        if (S.currentProvider === 'googleaistudio') {
+        if (S.currentProvider === "googleaistudio") {
           // Always use non-streaming for Gemini models for reliability
           const modelId = selectedModel;
           const url = `${currentProvider.baseUrl}/v1beta/models/${modelId}:generateContent?key=${currentProvider.apiKey}`;
@@ -1644,31 +1729,36 @@ ${sampleText}`;
             temperature: 0.7,
           });
           response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...currentProvider.headers },
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...currentProvider.headers,
+            },
             body: JSON.stringify(payload),
           });
-          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          if (!response.ok)
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           UI.hideLoadingMessage();
-          UI.setStatus('Receiving response...', true);
+          UI.setStatus("Receiving response...", true);
           const result = await response.json();
           const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
           if (content) {
-            assistantMessageDiv = UI.addMessage(content, 'assistant');
+            assistantMessageDiv = UI.addMessage(content, "assistant");
           } else {
-            throw new Error('No content found in Google AI Studio response');
+            throw new Error("No content found in Google AI Studio response");
           }
         } else {
           // All other providers (OpenRouter, etc.)
           response = await App.API.fetchChatCompletion({
             model: selectedModel,
             messages: messagesPayload,
-            stream: S.currentProvider !== 'googleaistudio',
+            stream: S.currentProvider !== "googleaistudio",
             max_tokens: S.maxTokens,
           });
-          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          if (!response.ok)
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           UI.hideLoadingMessage();
-          UI.setStatus('Receiving response...', true);
+          UI.setStatus("Receiving response...", true);
           // Streaming for OpenRouter and others
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
@@ -1678,28 +1768,34 @@ ${sampleText}`;
             done = doneReading;
             if (value) {
               const chunk = decoder.decode(value);
-              const lines = chunk.split('\n');
+              const lines = chunk.split("\n");
               for (const line of lines) {
-                if (line.startsWith('data: ')) {
+                if (line.startsWith("data: ")) {
                   const data = line.slice(6);
-                  if (data === '[DONE]') continue;
+                  if (data === "[DONE]") continue;
                   try {
                     const parsed = JSON.parse(data);
                     let delta, content;
                     delta = parsed.choices?.[0]?.delta;
                     content = delta?.content;
                     if (delta?.thinking) {
-                      thinkingContent += delta.thinking + ' ';
+                      thinkingContent += delta.thinking + " ";
                     }
                     if (content) {
-                      if (!assistantMessageDiv) assistantMessageDiv = UI.addMessage('', 'assistant');
+                      if (!assistantMessageDiv)
+                        assistantMessageDiv = UI.addMessage("", "assistant");
                       assistantContent += content;
                       assistantMessageDiv.dataset.rawContent = assistantContent;
-                      const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
+                      const messageTextContent =
+                        assistantMessageDiv.querySelector(
+                          ".message-text-content"
+                        );
                       if (messageTextContent) {
-                        messageTextContent.innerHTML = marked.parse(assistantContent);
+                        messageTextContent.innerHTML =
+                          marked.parse(assistantContent);
                       }
-                      if (S.autoScrollEnabled) E.messages.scrollTop = E.messages.scrollHeight;
+                      if (S.autoScrollEnabled)
+                        E.messages.scrollTop = E.messages.scrollHeight;
                     }
                   } catch (e) {}
                 }
@@ -1708,12 +1804,16 @@ ${sampleText}`;
           }
           // Final content rendering for streaming providers
           if (assistantMessageDiv) {
-            const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
+            const messageTextContent = assistantMessageDiv.querySelector(
+              ".message-text-content"
+            );
             if (messageTextContent) {
               if (thinkingContent) {
                 const foldable = UI.renderFoldableQuote(thinkingContent.trim());
-                messageTextContent.innerHTML = foldable + marked.parse(assistantContent);
-                assistantMessageDiv.dataset.rawContent = foldable + assistantContent;
+                messageTextContent.innerHTML =
+                  foldable + marked.parse(assistantContent);
+                assistantMessageDiv.dataset.rawContent =
+                  foldable + assistantContent;
               } else {
                 messageTextContent.innerHTML = marked.parse(assistantContent);
                 assistantMessageDiv.dataset.rawContent = assistantContent;
@@ -1721,18 +1821,20 @@ ${sampleText}`;
             }
           }
         }
-        UI.setStatus('Response complete');
+        UI.setStatus("Response complete");
       } catch (error) {
-        console.error('Error in sendMessage:', error);
+        console.error("Error in sendMessage:", error);
         UI.hideLoadingMessage();
         const errorMsg = `Error: ${error.message}`;
         if (!assistantMessageDiv) {
-          UI.addMessage(errorMsg, 'assistant');
+          UI.addMessage(errorMsg, "assistant");
         } else {
-          const currentContent = assistantMessageDiv.dataset.rawContent || '';
+          const currentContent = assistantMessageDiv.dataset.rawContent || "";
           const updatedContent = currentContent + `\n\n**${errorMsg}**`;
           assistantMessageDiv.dataset.rawContent = updatedContent;
-          const messageTextContent = assistantMessageDiv.querySelector('.message-text-content');
+          const messageTextContent = assistantMessageDiv.querySelector(
+            ".message-text-content"
+          );
           if (messageTextContent) {
             messageTextContent.innerHTML = marked.parse(updatedContent);
           }
@@ -1742,8 +1844,8 @@ ${sampleText}`;
         S.isGenerating = false;
         E.sendBtn.disabled = false;
         E.messageInput.disabled = false;
-        E.sendBtnText.classList.remove('hidden');
-        E.sendBtnLoading.classList.add('hidden');
+        E.sendBtnText.classList.remove("hidden");
+        E.sendBtnLoading.classList.add("hidden");
         S.currentThinkingDiv = null;
         if (S.autoScrollEnabled && E.messages) {
           E.messages.scrollTop = E.messages.scrollHeight;
@@ -1760,89 +1862,101 @@ ${sampleText}`;
       }
     },
 
-    initPDFUpload: function() {
-      const pdfBtn = document.getElementById('pdfUploadBtn');
-      const pdfInput = document.getElementById('pdfUpload');
+    initPDFUpload: function () {
+      const pdfBtn = document.getElementById("pdfUploadBtn");
+      const pdfInput = document.getElementById("pdfUpload");
       if (pdfBtn && pdfInput) {
         pdfBtn.onclick = () => {
           App.MainLogic.ensurePDFJS(() => pdfInput.click());
         };
         pdfInput.onchange = (e) => {
           const file = e.target.files[0];
-          if (file && file.type === 'application/pdf') {
-            App.MainLogic.ensurePDFJS(() => App.MainLogic.handlePDFUpload(file));
+          if (file && file.type === "application/pdf") {
+            App.MainLogic.ensurePDFJS(() =>
+              App.MainLogic.handlePDFUpload(file)
+            );
           } else {
-            alert('Please select a PDF file.');
+            alert("Please select a PDF file.");
           }
         };
       }
     },
 
-    handlePDFUpload: async function(file) {
+    handlePDFUpload: async function (file) {
       if (!window.pdfjsLib) {
-        alert('PDF.js library not loaded yet.');
+        alert("PDF.js library not loaded yet.");
         return;
       }
       const reader = new FileReader();
-      reader.onload = async function(e) {
+      reader.onload = async function (e) {
         const typedarray = new Uint8Array(e.target.result);
-        const pdf = await window.pdfjsLib.getDocument({data: typedarray}).promise;
-        let text = '';
+        const pdf = await window.pdfjsLib.getDocument({ data: typedarray })
+          .promise;
+        let text = "";
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          text += content.items.map(item => item.str).join(' ') + '\n';
+          text += content.items.map((item) => item.str).join(" ") + "\n";
         }
         App.State.pdfText = text;
         App.State.pdfFileName = file.name;
-        App.UI.setStatus(`PDF "${file.name}" loaded. Will be sent as context with your next message.`);
+        App.UI.setStatus(
+          `PDF "${file.name}" loaded. Will be sent as context with your next message.`
+        );
       };
       reader.readAsArrayBuffer(file);
     },
 
-    clearPDFContext: function() {
+    clearPDFContext: function () {
       App.State.pdfText = null;
       App.State.pdfFileName = null;
     },
 
-    incrementUsage: function(provider) {
+    incrementUsage: function (provider) {
       const today = new Date().toISOString().slice(0, 10);
-      if (!App.State.usage[provider][today]) App.State.usage[provider][today] = 0;
+      if (!App.State.usage[provider][today])
+        App.State.usage[provider][today] = 0;
       App.State.usage[provider][today]++;
-      localStorage.setItem(`usage_${provider}_${today}`, App.State.usage[provider][today]);
+      localStorage.setItem(
+        `usage_${provider}_${today}`,
+        App.State.usage[provider][today]
+      );
     },
 
-    getUsage: function(provider) {
+    getUsage: function (provider) {
       const today = new Date().toISOString().slice(0, 10);
       let usage = App.State.usage[provider][today];
       if (usage == null) {
-        usage = parseInt(localStorage.getItem(`usage_${provider}_${today}`) || '0', 10);
+        usage = parseInt(
+          localStorage.getItem(`usage_${provider}_${today}`) || "0",
+          10
+        );
         App.State.usage[provider][today] = usage;
       }
       return usage;
     },
 
-    checkRateLimit: function(provider) {
+    checkRateLimit: function (provider) {
       const limit = App.State.rateLimits[provider]?.daily || 99999;
       const usage = App.MainLogic.getUsage(provider);
       return usage < limit;
     },
 
-    getRateLimitStatus: function(provider) {
+    getRateLimitStatus: function (provider) {
       const limit = App.State.rateLimits[provider]?.daily || 99999;
       const usage = App.MainLogic.getUsage(provider);
       return `${usage}/${limit} today`;
     },
 
-    initReasoningToggle: function() {
-      const toggle = document.getElementById('reasoningToggle');
+    initReasoningToggle: function () {
+      const toggle = document.getElementById("reasoningToggle");
       if (toggle) {
         toggle.checked = App.State.reasoningEnabled;
         toggle.onchange = (e) => {
           App.State.reasoningEnabled = !!e.target.checked;
         };
       }
-      const effort = document.getElementById('reasoningEffort');
+      const effort = document.getElementById("reasoningEffort");
       if (effort) {
         effort.value = App.State.maxTokens;
         effort.onchange = (e) => {
@@ -1856,17 +1970,19 @@ ${sampleText}`;
     },
 
     // Improved PDF.js loader
-    ensurePDFJS: function(callback) {
+    ensurePDFJS: function (callback) {
       if (window.pdfjsLib && window.pdfjsLib.getDocument) {
         callback();
         return;
       }
       if (!window._pdfjsLoading) {
         window._pdfjsLoading = true;
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        const script = document.createElement("script");
+        script.src =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
         script.onload = () => {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
           setTimeout(callback, 100); // Give a moment for the lib to be ready
         };
         document.head.appendChild(script);
