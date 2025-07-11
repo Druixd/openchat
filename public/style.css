@@ -1291,9 +1291,9 @@ body:not([data-theme="dark"]) .provider-quick-switch-btn img {
 
 /* Button: black in light mode, white in dark mode */
 .provider-quick-switch-btn {
-  background: #111; /* black for light mode */
-  color: #fff;
-  border: 1px solid #222;
+  background: var(--text-primary); /* black for light mode */
+  color: var(--text-inverse);
+  border: var(--border-width) solid var(--border-primary);
   width: 48px;
   height: 48px;
   display: flex;
@@ -1303,9 +1303,9 @@ body:not([data-theme="dark"]) .provider-quick-switch-btn img {
   transition: background 0.2s, color 0.2s;
 }
 [data-theme="dark"] .provider-quick-switch-btn {
-  background: #fff; /* white for dark mode */
-  color: #111;
-  border: 1px solid #eee;
+  background: var(--text-inverse); /* white for dark mode */
+  color: var(--text-primary);
+  border: var(--border-width) solid var(--border-primary);
 }
 
 /* Logo: white in light mode, black in dark mode */
@@ -1317,7 +1317,7 @@ body:not([data-theme="dark"]) .provider-quick-switch-btn img {
   transition: filter 0.2s;
 }
 [data-theme="dark"] .provider-logo-img {
-  filter: none; /* black in dark mode */
+  filter: brightness(0); /* black in dark mode */
 }
 
 .pdf-dragover {
