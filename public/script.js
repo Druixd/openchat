@@ -134,7 +134,7 @@ const App = {
   Elements: {
     // Add provider elements
     providerSelect: null,
-
+    saveChatBtn: null,
     // Existing elements (keeping all your existing element definitions)
     header: null,
     configBtn: null,
@@ -300,7 +300,12 @@ const App = {
   UI: {
     init: function () {
       const E = App.Elements;
-      // ... (all your existing element assignments) ...
+      E.saveChatBtn = document.getElementById("saveChatBtn");
+
+      E.saveChatBtn?.addEventListener(
+        "click",
+        App.MainLogic.saveChatAsMarkdown
+      );
       E.header = document.querySelector(".header");
       E.configBtn = document.getElementById("configBtn");
       E.mobileConfigBtn = document.getElementById("mobileConfigBtn");
@@ -515,6 +520,30 @@ const App = {
         E.providerQuickSwitchBtn.addEventListener("click", function (e) {
           e.stopPropagation();
           E.providerQuickSwitchWrapper.classList.toggle("open");
+          const menu = E.providerFabMenu;
+          if (menu) {
+            // Reset
+            menu.style.left = "0";
+            menu.style.right = "auto";
+            menu.style.flexDirection = "row";
+            menu.style.top = "48px";
+            // Get bounding rect
+            const rect = menu.getBoundingClientRect();
+            const winWidth = window.innerWidth;
+            if (rect.right > winWidth - 8) {
+              // If it overflows right, pop to left
+              menu.style.left = "auto";
+              menu.style.right = "0";
+              menu.style.flexDirection = "row-reverse";
+            }
+            // If not enough width for horizontal, stack vertically
+            if (winWidth < 400) {
+              menu.style.flexDirection = "column";
+              menu.style.minWidth = "48px";
+              menu.style.left = "0";
+              menu.style.right = "auto";
+            }
+          }
         });
         // FAB button clicks
         [
@@ -955,7 +984,10 @@ const App = {
       messageDiv.className = `message ${role}`;
       messageDiv.dataset.rawContent = rawContent;
       messageDiv.dataset.role = role;
-
+      // Show save button if at least one message exists
+      if (App.Elements.saveChatBtn) {
+        App.Elements.saveChatBtn.style.display = "inline-flex";
+      }
       // If this is a user message and options.attachment is set, show attachment tag
       if (role === "user" && options.attachment) {
         const attachmentDiv = document.createElement("div");
@@ -1486,6 +1518,14 @@ ${sampleText}`;
   MainLogic: {
     init: function () {
       App.UI.init();
+      // Hide save button if no messages
+      if (App.Elements.saveChatBtn) {
+        const hasMessages =
+          App.Elements.messages && App.Elements.messages.children.length > 0;
+        App.Elements.saveChatBtn.style.display = hasMessages
+          ? "inline-flex"
+          : "none";
+      }
       App.Styles.init();
       const currentProvider = App.Provider.getCurrentProvider();
       if (currentProvider.apiKey) {
@@ -1859,12 +1899,86 @@ ${sampleText}`;
     },
 
     clearChat: function () {
+      if (App.Elements.saveChatBtn) {
+        App.Elements.saveChatBtn.style.display = "none";
+      }
       if (confirm("Clear all messages?")) {
         App.Elements.messages.innerHTML = "";
         App.UI.setStatus("Chat cleared");
       }
     },
+    saveChatAsMarkdown: function () {
+      const E = App.Elements;
+      const messages = E.messages?.querySelectorAll(".message");
+      if (!messages || messages.length === 0) {
+        alert("No messages to save.");
+        return;
+      }
 
+      // Session header
+      const now = new Date();
+      let md = `# Chat Transcript\n\n`;
+      md += `**Session Start:** ${now.toLocaleString()}\n\n---\n\n`;
+
+      messages.forEach((msg) => {
+        const role = msg.classList.contains("user") ? "User" : "AI";
+        const timestamp = msg.dataset.timestamp
+          ? new Date(Number(msg.dataset.timestamp)).toLocaleTimeString()
+          : "";
+
+        // Attachment info
+        let attachmentInfo = "";
+        const attachmentDiv = msg.querySelector(".message-attachment");
+        if (attachmentDiv) {
+          const name =
+            attachmentDiv.querySelector(".attachment-name")?.textContent || "";
+          attachmentInfo = `\n\n*Attachment: \`${name}\` included in this message.*\n`;
+        }
+
+        // Prefer rawContent for markdown, fallback to textContent
+        let content = msg.dataset.rawContent || "";
+        // Remove foldable quote HTML and any other HTML tags for AI
+        if (role === "AI") {
+          content = content.replace(
+            /<div class="foldable-quote"[\s\S]*?<\/div>/g,
+            ""
+          );
+          content = content.replace(/<[^>]+>/g, "");
+        }
+
+        // If user message looks like code, wrap in code block
+        if (role === "User" && /^```|[\n\r] {4,}/.test(content)) {
+          // Already a code block or indented, leave as is
+        } else if (
+          role === "User" &&
+          /[;{}=<>]/.test(content) &&
+          content.length < 500
+        ) {
+          // Heuristic: looks like code, wrap in code block
+          content = "```\n" + content.trim() + "\n```";
+        }
+
+        md += `### ${role}${
+          timestamp ? " — " + timestamp : ""
+        }\n\n${content.trim()}${attachmentInfo}\n\n---\n\n`;
+      });
+
+      // Download as .md file
+      const blob = new Blob([md], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `chat-${now
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-")}.md`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    },
     initPDFUpload: function () {
       const pdfBtn = document.getElementById("pdfUploadBtn");
       const pdfInput = document.getElementById("pdfUpload");
