@@ -93,6 +93,15 @@ const App = {
         authHeader: "Bearer",
         useV2Format: true, // Cohere uses different request/response format
       },
+      moonshot: {
+        name: "Moonshot AI",
+        apiKey: localStorage.getItem("moonshot_api_key") || "",
+        baseUrl: "https://api.moonshot.ai/v1",
+        headers: {},
+        chatEndpoint: "/chat/completions",
+        modelsEndpoint: "/models",
+        authHeader: "Bearer",
+      },
     },
 
     // Existing state properties
@@ -126,6 +135,10 @@ const App = {
     usage: {
       openrouter: {},
       googleaistudio: {},
+      siliconflow: {},
+      huggingface: {},
+      cohere: {},
+      moonshot: {},
     },
     reasoningEnabled: false,
     maxTokens: 2048,
@@ -552,6 +565,7 @@ const App = {
           "siliconflow",
           "huggingface",
           "cohere",
+          "moonshot",
         ].forEach((providerId) => {
           const btn = document.getElementById(`providerFabBtn-${providerId}`);
           if (btn) {
@@ -1660,11 +1674,11 @@ ${sampleText}`;
       UI.updateRateLimitStatus();
 
       // Rate limit check
-      if (!App.MainLogic.checkRateLimit(S.currentProvider)) {
+      /* if (!App.MainLogic.checkRateLimit(S.currentProvider)) {
         alert("Daily rate limit reached for this provider.");
         UI.setStatus("Daily rate limit exceeded.");
         return;
-      }
+      } */
 
       const selectedModel = E.modelSelect.value;
       const message = E.messageInput.value.trim();
@@ -1760,49 +1774,28 @@ ${sampleText}`;
       UI.updateRateLimitStatus();
 
       try {
-        let response;
-        if (S.currentProvider === "googleaistudio") {
-          // Always use non-streaming for Gemini models for reliability
-          const modelId = selectedModel;
-          const url = `${currentProvider.baseUrl}/v1beta/models/${modelId}:generateContent?key=${currentProvider.apiKey}`;
-          const payload = App.API.convertToGemini({
-            model: modelId,
-            messages: messagesPayload,
-            max_tokens: S.maxTokens,
-            temperature: 0.7,
-          });
-          response = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...currentProvider.headers,
-            },
-            body: JSON.stringify(payload),
-          });
-          if (!response.ok)
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          UI.hideLoadingMessage();
-          UI.setStatus("Receiving response...", true);
-          const result = await response.json();
-          const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (content) {
-            assistantMessageDiv = UI.addMessage(content, "assistant");
-          } else {
-            throw new Error("No content found in Google AI Studio response");
-          }
-        } else {
-          // All other providers (OpenRouter, etc.)
-          response = await App.API.fetchChatCompletion({
-            model: selectedModel,
-            messages: messagesPayload,
-            stream: S.currentProvider !== "googleaistudio",
-            max_tokens: S.maxTokens,
-          });
-          if (!response.ok)
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          UI.hideLoadingMessage();
-          UI.setStatus("Receiving response...", true);
-          // Streaming for OpenRouter and others
+        const nonStreamProviders = ["cohere", "huggingface", "googleaistudio"];
+        const useStream = !nonStreamProviders.includes(S.currentProvider);
+
+        const response = await App.API.fetchChatCompletion({
+          model: selectedModel,
+          messages: messagesPayload,
+          stream: useStream,
+          max_tokens: S.maxTokens,
+          temperature: 0.7,
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText} - ${errorBody}`
+          );
+        }
+
+        UI.hideLoadingMessage();
+        UI.setStatus("Receiving response...", true);
+
+        if (useStream) {
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let done = false;
@@ -1810,23 +1803,19 @@ ${sampleText}`;
             const { value, done: doneReading } = await reader.read();
             done = doneReading;
             if (value) {
-              const chunk = decoder.decode(value);
+              const chunk = decoder.decode(value, { stream: true });
               const lines = chunk.split("\n");
               for (const line of lines) {
                 if (line.startsWith("data: ")) {
-                  const data = line.slice(6);
+                  const data = line.substring(6);
                   if (data === "[DONE]") continue;
                   try {
                     const parsed = JSON.parse(data);
-                    let delta, content;
-                    delta = parsed.choices?.[0]?.delta;
-                    content = delta?.content;
-                    if (delta?.thinking) {
-                      thinkingContent += delta.thinking + " ";
-                    }
+                    const content = parsed.choices?.[0]?.delta?.content;
                     if (content) {
-                      if (!assistantMessageDiv)
+                      if (!assistantMessageDiv) {
                         assistantMessageDiv = UI.addMessage("", "assistant");
+                      }
                       assistantContent += content;
                       assistantMessageDiv.dataset.rawContent = assistantContent;
                       const messageTextContent =
@@ -1837,31 +1826,42 @@ ${sampleText}`;
                         messageTextContent.innerHTML =
                           marked.parse(assistantContent);
                       }
-                      if (S.autoScrollEnabled)
+                      if (S.autoScrollEnabled) {
                         E.messages.scrollTop = E.messages.scrollHeight;
+                      }
                     }
-                  } catch (e) {}
+                  } catch (e) {
+                    console.error(
+                      "Error parsing stream chunk:",
+                      e,
+                      "Chunk:",
+                      data
+                    );
+                  }
                 }
               }
             }
           }
-          // Final content rendering for streaming providers
-          if (assistantMessageDiv) {
-            const messageTextContent = assistantMessageDiv.querySelector(
-              ".message-text-content"
+        } else {
+          const result = await response.json();
+          let content = null;
+
+          if (S.currentProvider === "googleaistudio") {
+            content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+          } else if (S.currentProvider === "cohere") {
+            content = result.text;
+          } else {
+            content = result.choices?.[0]?.message?.content;
+          }
+
+          if (content) {
+            assistantMessageDiv = UI.addMessage(content, "assistant");
+          } else {
+            throw new Error(
+              `No content found in ${
+                currentProvider.name
+              } response: ${JSON.stringify(result)}`
             );
-            if (messageTextContent) {
-              if (thinkingContent) {
-                const foldable = UI.renderFoldableQuote(thinkingContent.trim());
-                messageTextContent.innerHTML =
-                  foldable + marked.parse(assistantContent);
-                assistantMessageDiv.dataset.rawContent =
-                  foldable + assistantContent;
-              } else {
-                messageTextContent.innerHTML = marked.parse(assistantContent);
-                assistantMessageDiv.dataset.rawContent = assistantContent;
-              }
-            }
           }
         }
         UI.setStatus("Response complete");
