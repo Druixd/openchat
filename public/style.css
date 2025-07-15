@@ -148,6 +148,43 @@ body::before {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  cursor: pointer;
+  transition: none;
+  position: relative;
+  z-index: 1;
+}
+
+.logo.animating {
+  pointer-events: none;
+}
+
+.logo svg {
+  transition: transform 0.6s ease;
+  transform-origin: center;
+}
+
+.logo.spin svg {
+  animation: logoSpin 0.6s ease-in-out;
+}
+
+@keyframes logoSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.title {
+  position: relative;
+  overflow: hidden;
+}
+
+.title.typewriter {
+  border-right: 2px solid var(--text-primary);
+  animation: blink-caret 1s step-end infinite;
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--text-primary); }
 }
 
 .logo svg {
