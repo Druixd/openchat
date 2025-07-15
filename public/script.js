@@ -112,6 +112,7 @@ const App = {
         ? true
         : localStorage.getItem("openrouter_auto_scroll") === "true",
     darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
+    customSystemPromptEnabled: localStorage.getItem("openrouter_custom_system_prompt_enabled") === "true",
     freeOnly: true,
     models: [],
     isGenerating: false,
@@ -195,6 +196,8 @@ const App = {
     mobileModelSearchInput: null,
     mobileModelList: null,
     darkModeToggleInput: null,
+    customSystemPromptToggle: null,
+    customSystemPromptSection: null,
     pdfUpload: null,
     providerQuickSwitchWrapper: null,
     providerQuickSwitchBtn: null,
@@ -304,7 +307,7 @@ const App = {
         // Automatically trigger refresh and selection
         setTimeout(() => {
           App.Elements.refreshBtn?.click();
-        }, 0);
+        }, 100);
       }
     },
   },
@@ -385,6 +388,8 @@ const App = {
       );
       E.mobileModelList = document.getElementById("mobileModelList");
       E.darkModeToggleInput = document.getElementById("darkModeToggleInput");
+      E.customSystemPromptToggle = document.getElementById("customSystemPromptToggle");
+      E.customSystemPromptSection = document.getElementById("customSystemPromptSection");
       E.providerQuickSwitchWrapper = document.getElementById(
         "providerQuickSwitchWrapper"
       );
@@ -400,6 +405,7 @@ const App = {
       App.UI.updateFreeOnlyToggleUI();
       App.UI.updateRateLimitStatus();
       App.DarkMode.init();
+      App.Config.updateCustomSystemPromptUI();
       App.Provider.updateUI();
       App.UI.updateProviderQuickSwitchLogo();
 
@@ -454,6 +460,7 @@ const App = {
       );
       E.saveConfigBtn?.addEventListener("click", App.Config.save);
       E.darkModeToggleInput?.addEventListener("click", App.DarkMode.toggle);
+      E.customSystemPromptToggle?.addEventListener("click", App.Config.toggleCustomSystemPrompt);
 
       // Provider event listeners
       E.providerSelect?.addEventListener(
@@ -573,14 +580,18 @@ const App = {
               e.stopPropagation();
               if (App.State.currentProvider !== providerId) {
                 App.Provider.setCurrentProvider(providerId);
-                // Restore last selected model for this provider
-                const lastModel = localStorage.getItem(
-                  `lastModel_${providerId}`
-                );
-                if (lastModel && App.Elements.modelSelect) {
-                  App.Elements.modelSelect.value = lastModel;
-                }
+                
+                // Clear current models and refresh for new provider
+                App.State.models = [];
                 App.UI.populateCustomModelSelect();
+                
+                // Automatically refresh models if API key is available
+                const provider = App.Provider.getCurrentProvider();
+                if (provider.apiKey) {
+                  setTimeout(() => {
+                    App.Elements.refreshBtn?.click();
+                  }, 100);
+                }
               }
               E.providerQuickSwitchWrapper.classList.remove("open");
               App.UI.updateProviderQuickSwitchLogo();
@@ -674,6 +685,11 @@ const App = {
       ) {
         E.modelSelect.value = lastSelectedModel;
         selectedModel = modelsToDisplay.find((m) => m.id === lastSelectedModel);
+      } else if (modelsToDisplay.length > 0) {
+        // Auto-select first model if no previous selection
+        selectedModel = modelsToDisplay[0];
+        E.modelSelect.value = selectedModel.id;
+        localStorage.setItem(`lastModel_${providerId}`, selectedModel.id);
       } else {
         E.modelSelect.value = "";
       }
@@ -1495,6 +1511,7 @@ ${sampleText}`;
       E.userSystemPromptInput.value = S.userSystemPrompt;
       App.UI.updateAutoScrollToggleUI();
       App.DarkMode.updateToggleUI();
+      App.Config.updateCustomSystemPromptUI();
       App.Provider.updateUI();
       App.Styles.init();
       E.configModal.style.display = "block";
@@ -1526,6 +1543,29 @@ ${sampleText}`;
     toggleAutoScroll: function () {
       App.State.autoScrollEnabled = !App.State.autoScrollEnabled;
       App.UI.updateAutoScrollToggleUI();
+    },
+
+    toggleCustomSystemPrompt: function () {
+      App.State.customSystemPromptEnabled = !App.State.customSystemPromptEnabled;
+      App.Config.updateCustomSystemPromptUI();
+      localStorage.setItem("openrouter_custom_system_prompt_enabled", App.State.customSystemPromptEnabled);
+    },
+
+    updateCustomSystemPromptUI: function () {
+      const E = App.Elements;
+      const S = App.State;
+      
+      if (E.customSystemPromptToggle) {
+        E.customSystemPromptToggle.classList.toggle("active", S.customSystemPromptEnabled);
+      }
+      
+      if (E.customSystemPromptSection) {
+        if (S.customSystemPromptEnabled) {
+          E.customSystemPromptSection.classList.remove("hidden");
+        } else {
+          E.customSystemPromptSection.classList.add("hidden");
+        }
+      }
     },
   },
 
@@ -1671,6 +1711,12 @@ ${sampleText}`;
       const UI = App.UI;
       const currentProvider = App.Provider.getCurrentProvider();
 
+      console.log("SendMessage called for provider:", S.currentProvider);
+      console.log("Current provider config:", currentProvider);
+      console.log("API Key present:", !!currentProvider.apiKey);
+      console.log("Selected model:", E.modelSelect.value);
+      console.log("Available models:", S.models.length);
+
       UI.updateRateLimitStatus();
 
       // Rate limit check
@@ -1683,8 +1729,12 @@ ${sampleText}`;
       const selectedModel = E.modelSelect.value;
       const message = E.messageInput.value.trim();
 
-      if (!message || S.isGenerating) return;
+      if (!message || S.isGenerating) {
+        console.log("Returning early: no message or already generating");
+        return;
+      }
       if (!currentProvider.apiKey) {
+        console.log("No API key, opening config");
         App.Config.open();
         setTimeout(() => {
           if (E.apiKeyInput) E.apiKeyInput.focus();
@@ -1692,6 +1742,7 @@ ${sampleText}`;
         return;
       }
       if (!selectedModel) {
+        console.log("No model selected, showing alert");
         alert("Please select a model from the dropdown.");
         return;
       }

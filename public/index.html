@@ -264,12 +264,6 @@
         </div>
 
         <div class="form-section">
-          <label class="form-label" for="userSystemPromptInput">Custom System Prompt</label>
-          <textarea class="form-textarea" id="userSystemPromptInput"
-            placeholder="Add custom instructions or use @override to replace default"></textarea>
-        </div>
-
-        <div class="form-section">
           <label class="form-label" for="writingStyleSelect">Writing Style</label>
           <select id="writingStyleSelect" class="form-select"></select>
           <textarea id="writingStyleContent" class="form-textarea"
@@ -280,26 +274,71 @@
           </div>
         </div>
 
-        <div class="form-section form-row">
-          <label class="form-label">Auto-scroll after response</label>
-          <button class="toggle-btn active" id="autoScrollToggleInput">
-            <div class="toggle-slider"></div>
-          </button>
+        <div class="form-section hidden" id="customSystemPromptSection">
+          <label class="form-label" for="userSystemPromptInput">Custom System Prompt</label>
+          <textarea class="form-textarea" id="userSystemPromptInput"
+            placeholder="Add custom instructions or use @override to replace default"></textarea>
         </div>
 
-        <div class="form-section form-row">
-          <label class="form-label">Dark Mode</label>
-          <button class="toggle-btn" id="darkModeToggleInput">
-            <div class="toggle-slider"></div>
-          </button>
+        <div class="form-section">
+          <div class="toggle-controls-row">
+            <div class="toggle-control-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+                <rect x="5" y="2" width="14" height="20" rx="7"/>
+                <path d="M12 6v4"/>
+                <path d="M12 14v.01"/>
+              </svg>
+              <span class="toggle-label">AUTO-SCROLL</span>
+              <button class="toggle-btn active" id="autoScrollToggleInput">
+                <div class="toggle-slider"></div>
+              </button>
+            </div>
+
+            <div class="toggle-separator">|</div>
+
+            <div class="toggle-control-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+                <path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/>
+                <path d="M12 2v2"/>
+                <path d="M12 20v2"/>
+                <path d="m4.9 4.9 1.4 1.4"/>
+                <path d="m17.7 17.7 1.4 1.4"/>
+                <path d="M2 12h2"/>
+                <path d="M20 12h2"/>
+                <path d="m6.3 17.7-1.4 1.4"/>
+                <path d="m19.1 4.9-1.4 1.4"/>
+              </svg>
+              <span class="toggle-label">DARK MODE</span>
+              <button class="toggle-btn" id="darkModeToggleInput">
+                <div class="toggle-slider"></div>
+              </button>
+            </div>
+
+            <div class="toggle-separator">|</div>
+
+            <div class="toggle-control-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+                <rect width="20" height="14" x="2" y="3" rx="2"/>
+                <line x1="8" x2="16" y1="21" y2="21"/>
+                <line x1="12" x2="12" y1="17" y2="21"/>
+                <path d="m14 8 2 2-2 2"/>
+                <path d="m10 8-2 2 2 2"/>
+              </svg>
+              <span class="toggle-label" title="Custom System Prompt - Override default system instructions">SYSTEM
+                PROMPT</span>
+              <button class="toggle-btn" id="customSystemPromptToggle">
+                <div class="toggle-slider"></div>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="form-section form-row">
+        <!-- <div class="form-section form-row">
           <label class="form-label" for="reasoningEffort">Reasoning Effort / Max Tokens</label>
           <input type="number" class="form-input" id="reasoningEffort" min="256" max="8192" step="64" value="2048" />
           <label class="toggle-label" for="reasoningToggle" style="margin-left:16px;">Enable Reasoning</label>
           <input type="checkbox" id="reasoningToggle" style="margin-left:4px;" />
-        </div>
+        </div> -->
 
         <div class="modal-footer">
           <button class="header-btn primary large" id="saveConfigBtn">SAVE CONFIGURATION</button>

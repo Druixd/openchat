@@ -540,6 +540,70 @@ body::before {
   background: var(--text-primary);
 }
 
+/* Toggle Controls Row */
+.toggle-controls-row {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: var(--border-width) solid var(--border-primary);
+  border-radius: 0;
+}
+
+.toggle-control-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.toggle-control-item .toggle-label {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-control-item .toggle-btn {
+  flex-shrink: 0;
+}
+
+.toggle-separator {
+  color: var(--text-secondary);
+  font-size: 18px;
+  font-weight: var(--font-weight-normal);
+  opacity: 0.6;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Responsive adjustments for toggle controls */
+@media (max-width: 768px) {
+  .toggle-controls-row {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: stretch;
+  }
+  
+  .toggle-control-item {
+    justify-content: space-between;
+  }
+  
+  .toggle-control-item .toggle-label {
+    flex: none;
+  }
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
