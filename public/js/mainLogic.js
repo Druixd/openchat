@@ -135,6 +135,30 @@ App.MainLogic = {
     }
   },
 
+  stopGeneration: function () {
+    const S = App.State;
+    const E = App.Elements;
+    const UI = App.UI;
+
+    if (S.abortController) {
+      S.abortController.abort();
+    }
+
+    // Reset UI state
+    S.isGenerating = false;
+    S.abortController = null;
+    E.sendBtn.disabled = false;
+    E.messageInput.disabled = false;
+    E.sendBtnText.classList.remove("hidden");
+    E.stopBtnText.classList.add("hidden");
+    // E.sendBtnLoading.classList.add("hidden"); // Loading spinner was not shown
+
+    // UI.hideLoadingMessage(); // Loading spinner was not shown
+    UI.setStatus("Response stopped by user");
+    E.messageInput.focus();
+    UI.updateRateLimitStatus();
+  },
+
   sendMessage: async function () {
     const S = App.State;
     const E = App.Elements;
@@ -178,10 +202,12 @@ App.MainLogic = {
     }
 
     S.isGenerating = true;
-    E.sendBtn.disabled = true;
+    S.abortController = new AbortController();
+    E.sendBtn.disabled = false; // Keep enabled for stop functionality
     E.messageInput.disabled = true;
     E.sendBtnText.classList.add("hidden");
-    E.sendBtnLoading.classList.remove("hidden");
+    E.stopBtnText.classList.remove("hidden");
+    // E.sendBtnLoading.classList.remove("hidden"); // Hide loading spinner
 
     // Compose context with PDF if present
     let context = message;
@@ -202,7 +228,7 @@ App.MainLogic = {
     E.messageInput.style.height = "auto";
 
     UI.setStatus("Waiting for response...", true);
-    UI.showLoadingMessage();
+    // UI.showLoadingMessage(); // Loading spinner hidden
 
     let assistantMessageDiv = null;
     let assistantContent = "";
@@ -264,6 +290,7 @@ App.MainLogic = {
         stream: useStream,
         max_tokens: S.maxTokens,
         temperature: 0.7,
+        signal: S.abortController.signal,
       });
 
       if (!response.ok) {
@@ -273,7 +300,7 @@ App.MainLogic = {
         );
       }
 
-      UI.hideLoadingMessage();
+      // UI.hideLoadingMessage(); // Loading spinner was not shown
       UI.setStatus("Receiving response...", true);
 
       if (useStream) {
@@ -348,7 +375,7 @@ App.MainLogic = {
       UI.setStatus("Response complete");
     } catch (error) {
       console.error("Error in sendMessage:", error);
-      UI.hideLoadingMessage();
+      // UI.hideLoadingMessage(); // Loading spinner was not shown
       const errorMsg = `Error: ${error.message}`;
       if (!assistantMessageDiv) {
         UI.addMessage(errorMsg, "assistant");
@@ -366,10 +393,12 @@ App.MainLogic = {
       UI.setStatus(errorMsg);
     } finally {
       S.isGenerating = false;
+      S.abortController = null;
       E.sendBtn.disabled = false;
       E.messageInput.disabled = false;
       E.sendBtnText.classList.remove("hidden");
-      E.sendBtnLoading.classList.add("hidden");
+      E.stopBtnText.classList.add("hidden");
+      // E.sendBtnLoading.classList.add("hidden"); // Loading spinner was not shown
       S.currentThinkingDiv = null;
       if (S.autoScrollEnabled && E.messages) {
         E.messages.scrollTop = E.messages.scrollHeight;
@@ -630,13 +659,15 @@ App.MainLogic = {
 
     // Set generating state
     S.isGenerating = true;
-    E.sendBtn.disabled = true;
+    S.abortController = new AbortController();
+    E.sendBtn.disabled = false; // Keep enabled for stop functionality
     E.messageInput.disabled = true;
     E.sendBtnText.classList.add("hidden");
-    E.sendBtnLoading.classList.remove("hidden");
+    E.stopBtnText.classList.remove("hidden");
+    // E.sendBtnLoading.classList.remove("hidden"); // Hide loading spinner
 
     UI.setStatus("Retrying response...", true);
-    UI.showLoadingMessage();
+    // UI.showLoadingMessage(); // Loading spinner hidden
 
     let assistantMessageDiv = null;
 
@@ -650,6 +681,7 @@ App.MainLogic = {
         stream: useStream,
         max_tokens: S.maxTokens,
         temperature: 0.7,
+        signal: S.abortController.signal,
       });
 
       if (!response.ok) {
@@ -659,7 +691,7 @@ App.MainLogic = {
         );
       }
 
-      UI.hideLoadingMessage();
+      // UI.hideLoadingMessage(); // Loading spinner was not shown
       UI.setStatus("Receiving response...", true);
 
       if (useStream) {
@@ -735,7 +767,7 @@ App.MainLogic = {
       UI.setStatus("Response complete");
     } catch (error) {
       console.error("Error in retryLastMessage:", error);
-      UI.hideLoadingMessage();
+      // UI.hideLoadingMessage(); // Loading spinner was not shown
       const errorMsg = `Error: ${error.message}`;
       if (!assistantMessageDiv) {
         UI.addMessage(errorMsg, "assistant");
@@ -753,10 +785,12 @@ App.MainLogic = {
       UI.setStatus(errorMsg);
     } finally {
       S.isGenerating = false;
+      S.abortController = null;
       E.sendBtn.disabled = false;
       E.messageInput.disabled = false;
       E.sendBtnText.classList.remove("hidden");
-      E.sendBtnLoading.classList.add("hidden");
+      E.stopBtnText.classList.add("hidden");
+      // E.sendBtnLoading.classList.add("hidden"); // Loading spinner was not shown
       if (S.autoScrollEnabled && E.messages) {
         E.messages.scrollTop = E.messages.scrollHeight;
       }

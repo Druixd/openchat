@@ -40,6 +40,7 @@ App.UI = {
     E.messageInput = document.getElementById("messageInput");
     E.sendBtn = document.getElementById("sendBtn");
     E.sendBtnText = document.getElementById("sendBtnText");
+    E.stopBtnText = document.getElementById("stopBtnText");
     E.sendBtnLoading = document.getElementById("sendBtnLoading");
     E.configModal = document.getElementById("configModal");
     E.closeConfigBtn = document.getElementById("closeConfigBtn");
@@ -152,7 +153,13 @@ App.UI = {
       "click",
       App.MainLogic.toggleFreeOnly
     );
-    E.sendBtn?.addEventListener("click", App.MainLogic.sendMessage);
+    E.sendBtn?.addEventListener("click", function() {
+      if (App.State.isGenerating) {
+        App.MainLogic.stopGeneration();
+      } else {
+        App.MainLogic.sendMessage();
+      }
+    });
     E.autoScrollToggleInput?.addEventListener(
       "click",
       App.Config.toggleAutoScroll
@@ -740,7 +747,8 @@ App.UI = {
     if (role === "assistant") {
       messageTextContentDiv.innerHTML = marked.parse(rawContent);
     } else {
-      messageTextContentDiv.textContent = rawContent;
+      // For user messages, also render markdown but preserve line breaks
+      messageTextContentDiv.innerHTML = marked.parse(rawContent);
     }
     messageDiv.appendChild(messageTextContentDiv);
 
@@ -794,13 +802,10 @@ App.UI = {
     if (format === "md") {
       textToCopy = rawContent;
     } else {
-      if (role === "assistant") {
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = marked.parse(rawContent);
-        textToCopy = tempDiv.textContent || tempDiv.innerText || "";
-      } else {
-        textToCopy = rawContent;
-      }
+      // For both user and assistant messages, convert HTML back to plain text
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = marked.parse(rawContent);
+      textToCopy = tempDiv.textContent || tempDiv.innerText || "";
     }
     navigator.clipboard
       .writeText(textToCopy)

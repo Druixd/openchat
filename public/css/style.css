@@ -767,6 +767,81 @@ body::before {
   margin-bottom: 1em;
 }
 
+/* Code block styling with text wrapping */
+.message-text-content pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 4px;
+  padding: var(--space-sm);
+  margin: var(--space-sm) 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.message-text-content code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.message-text-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Ensure user messages also have proper text formatting and markdown styling */
+.message.user .message-text-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.message.user .message-text-content p {
+  margin: 0 0 1em 0;
+  line-height: 1.7;
+}
+
+.message.user .message-text-content strong {
+  font-weight: 600;
+}
+
+.message.user .message-text-content em {
+  font-style: italic;
+}
+
+.message.user .message-text-content ul,
+.message.user .message-text-content ol {
+  margin: 0 0 1em 2em;
+  padding-left: 1.5em;
+}
+
+.message.user .message-text-content li {
+  margin-bottom: 0.4em;
+  line-height: 1.6;
+}
+
+.message.user .message-text-content blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--color-blue, #1a73e8);
+  background: var(--bg-tertiary, #f8f9fa);
+  color: var(--text-secondary, #555);
+}
+
 .message-text-content.assistant {
   padding: var(--space-md);
   border-radius: var(--border-radius, 8px);

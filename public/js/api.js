@@ -33,6 +33,7 @@ App.API = {
     let requestPayload = payload;
     let endpoint = provider.chatEndpoint;
     let url;
+    const signal = payload.signal;
 
     // Handle Google AI Studio's different format
     if (provider.useGeminiFormat) {
@@ -54,6 +55,7 @@ App.API = {
           ...provider.headers,
         },
         body: JSON.stringify(requestPayload),
+        signal: signal,
       });
     }
 
@@ -78,6 +80,7 @@ App.API = {
       method: "POST",
       headers: headers,
       body: JSON.stringify(requestPayload),
+      signal: signal,
     });
   },
 
