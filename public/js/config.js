@@ -112,7 +112,7 @@ const App = {
       localStorage.getItem("openrouter_auto_scroll") === null
         ? true
         : localStorage.getItem("openrouter_auto_scroll") === "true",
-    darkMode: localStorage.getItem("openrouter_dark_mode") === "true",
+    darkMode: localStorage.getItem("openrouter_dark_mode") !== "false",
     customSystemPromptEnabled: localStorage.getItem("openrouter_custom_system_prompt_enabled") === "true",
     freeOnly: true,
     models: [],
