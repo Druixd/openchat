@@ -106,11 +106,24 @@ App.UI = {
       this.style.height = Math.min(this.scrollHeight, 120) + "px";
     });
 
-    // Send message on Enter (not Shift+Enter)
+    // Send message on Enter (not Shift+Enter), but on mobile Enter adds new line
     E.messageInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        App.MainLogic.sendMessage();
+        const isMobile = window.innerWidth < 768; // Simple mobile detection
+        if (isMobile) {
+          // On mobile, insert new line instead of sending
+          e.preventDefault();
+          const start = this.selectionStart;
+          const end = this.selectionEnd;
+          this.value = this.value.substring(0, start) + "\n" + this.value.substring(end);
+          this.selectionStart = this.selectionEnd = start + 1;
+          // Trigger input event to resize textarea
+          this.dispatchEvent(new Event('input'));
+        } else {
+          // On desktop, send message
+          e.preventDefault();
+          App.MainLogic.sendMessage();
+        }
       }
     });
 
@@ -749,6 +762,22 @@ App.UI = {
       };
       actionsDiv.appendChild(btn);
     });
+    // Add retry button for assistant messages
+    if (role === "assistant") {
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "copy-btn retry-btn";
+      retryBtn.title = "Retry generating response";
+      retryBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+      `;
+      retryBtn.onclick = (e) => {
+        e.stopPropagation();
+        App.MainLogic.retryLastMessage();
+      };
+      actionsDiv.appendChild(retryBtn);
+    }
     messageDiv.appendChild(actionsDiv);
 
     E.messages.appendChild(messageDiv);

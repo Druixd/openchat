@@ -593,4 +593,175 @@ App.MainLogic = {
       check();
     }
   },
+
+  retryLastMessage: async function () {
+    const E = App.Elements;
+    const S = App.State;
+    const UI = App.UI;
+    const currentProvider = App.Provider.getCurrentProvider();
+
+    const messages = E.messages.querySelectorAll(".message");
+    if (messages.length === 0) return;
+
+    // Find the last assistant message
+    let lastAssistantMessage = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].classList.contains("assistant")) {
+        lastAssistantMessage = messages[i];
+        break;
+      }
+    }
+    if (!lastAssistantMessage) return;
+
+    // Remove the last assistant message
+    lastAssistantMessage.remove();
+
+    // Build conversation history from remaining messages
+    const messagesPayload = [];
+    if (S.finalSystemPrompt) {
+      messagesPayload.push({ role: "system", content: S.finalSystemPrompt });
+    }
+    messages.forEach((el) => {
+      messagesPayload.push({
+        role: el.classList.contains("user") ? "user" : "assistant",
+        content: el.dataset.rawContent,
+      });
+    });
+
+    // Set generating state
+    S.isGenerating = true;
+    E.sendBtn.disabled = true;
+    E.messageInput.disabled = true;
+    E.sendBtnText.classList.add("hidden");
+    E.sendBtnLoading.classList.remove("hidden");
+
+    UI.setStatus("Retrying response...", true);
+    UI.showLoadingMessage();
+
+    let assistantMessageDiv = null;
+
+    try {
+      const nonStreamProviders = ["cohere", "huggingface", "googleaistudio"];
+      const useStream = !nonStreamProviders.includes(S.currentProvider);
+
+      const response = await App.API.fetchChatCompletion({
+        model: E.modelSelect.value,
+        messages: messagesPayload,
+        stream: useStream,
+        max_tokens: S.maxTokens,
+        temperature: 0.7,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} - ${errorBody}`
+        );
+      }
+
+      UI.hideLoadingMessage();
+      UI.setStatus("Receiving response...", true);
+
+      if (useStream) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let assistantContent = "";
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.substring(6);
+                if (data === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    if (!assistantMessageDiv) {
+                      assistantMessageDiv = UI.addMessage("", "assistant");
+                    }
+                    assistantContent += content;
+                    assistantMessageDiv.dataset.rawContent = assistantContent;
+                    const messageTextContent =
+                      assistantMessageDiv.querySelector(
+                        ".message-text-content"
+                      );
+                    if (messageTextContent) {
+                      messageTextContent.innerHTML =
+                        marked.parse(assistantContent);
+                    }
+                    if (S.autoScrollEnabled) {
+                      E.messages.scrollTop = E.messages.scrollHeight;
+                    }
+                  }
+                } catch (e) {
+                  console.error(
+                    "Error parsing stream chunk:",
+                    e,
+                    "Chunk:",
+                    data
+                  );
+                }
+              }
+            }
+          }
+        }
+      } else {
+        const result = await response.json();
+        let content = null;
+
+        if (S.currentProvider === "googleaistudio") {
+          content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        } else if (S.currentProvider === "cohere") {
+          content = result.text;
+        } else {
+          content = result.choices?.[0]?.message?.content;
+        }
+
+        if (content) {
+          assistantMessageDiv = UI.addMessage(content, "assistant");
+        } else {
+          throw new Error(
+            `No content found in ${
+              currentProvider.name
+            } response: ${JSON.stringify(result)}`
+          );
+        }
+      }
+      UI.setStatus("Response complete");
+    } catch (error) {
+      console.error("Error in retryLastMessage:", error);
+      UI.hideLoadingMessage();
+      const errorMsg = `Error: ${error.message}`;
+      if (!assistantMessageDiv) {
+        UI.addMessage(errorMsg, "assistant");
+      } else {
+        const currentContent = assistantMessageDiv.dataset.rawContent || "";
+        const updatedContent = currentContent + `\n\n**${errorMsg}**`;
+        assistantMessageDiv.dataset.rawContent = updatedContent;
+        const messageTextContent = assistantMessageDiv.querySelector(
+          ".message-text-content"
+        );
+        if (messageTextContent) {
+          messageTextContent.innerHTML = marked.parse(updatedContent);
+        }
+      }
+      UI.setStatus(errorMsg);
+    } finally {
+      S.isGenerating = false;
+      E.sendBtn.disabled = false;
+      E.messageInput.disabled = false;
+      E.sendBtnText.classList.remove("hidden");
+      E.sendBtnLoading.classList.add("hidden");
+      if (S.autoScrollEnabled && E.messages) {
+        E.messages.scrollTop = E.messages.scrollHeight;
+      }
+      E.messageInput.focus();
+      UI.updateRateLimitStatus();
+    }
+  },
 };
