@@ -34,7 +34,7 @@ const App = {
         predefinedModels: [
           { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash Lite" },
           {
-            id: "gemini-2.5-flash-lite-preview-06-17",
+            id: "gemini-2.5-flash-lite",
             name: "Gemini 2.5 Flash Lite",
           },
           { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
